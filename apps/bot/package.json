@@ -1,0 +1,22 @@
+{
+  "name": "@tkbot/bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TK$ Bot — cliente de Discord",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "deploy": "node scripts/deploy-commands.js",
+    "deploy:global": "node scripts/deploy-commands.js --global",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.68",
+    "@tkbot/shared": "*",
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}

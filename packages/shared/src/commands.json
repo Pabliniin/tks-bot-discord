@@ -1,0 +1,869 @@
+[
+  {
+    "name": "avatar",
+    "category": "info",
+    "description": "Te muestra el avatar de un usuario.",
+    "usage": "[usuario]",
+    "examples": [
+      "avatar",
+      "avatar @Rogue"
+    ],
+    "aliases": [
+      "av",
+      "pfp",
+      "foto"
+    ],
+    "premium": false,
+    "cooldown": 5,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "ban",
+    "category": "moderation",
+    "description": "Banea a un miembro.",
+    "usage": "<usuario> [razón]",
+    "examples": [
+      "ban @Rogue spam repetido",
+      "ban 123456789012345678 raid"
+    ],
+    "aliases": [
+      "banear",
+      "banip"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "BanMembers"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "clear",
+    "category": "moderation",
+    "description": "Limpia los mensajes del canal.",
+    "usage": "<cantidad> [usuario]",
+    "examples": [
+      "clear 50",
+      "clear 100 @Rogue"
+    ],
+    "aliases": [
+      "purge",
+      "limpiar",
+      "borrar"
+    ],
+    "premium": false,
+    "cooldown": 5,
+    "userPermissions": [
+      "ManageMessages"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "color",
+    "category": "general",
+    "description": "Cambia tu color en el servidor.",
+    "usage": "<nombre del color>",
+    "examples": [
+      "color Rojo",
+      "color quitar"
+    ],
+    "aliases": [
+      "micolor"
+    ],
+    "premium": false,
+    "cooldown": 5,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "colors",
+    "category": "general",
+    "description": "Enumera todos los colores disponibles.",
+    "usage": "",
+    "examples": [
+      "colors"
+    ],
+    "aliases": [
+      "colores",
+      "listacolores"
+    ],
+    "premium": false,
+    "cooldown": 5,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "credits",
+    "category": "general",
+    "description": "Muestra tus créditos o el de otra persona.",
+    "usage": "[usuario]",
+    "examples": [
+      "credits",
+      "credits @Rogue"
+    ],
+    "aliases": [
+      "creditos",
+      "créditos",
+      "bal",
+      "balance"
+    ],
+    "premium": false,
+    "cooldown": 5,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "help",
+    "category": "general",
+    "description": "Muestra la lista de comandos y cómo usarlos.",
+    "usage": "[comando]",
+    "examples": [
+      "help",
+      "help ban"
+    ],
+    "aliases": [
+      "ayuda",
+      "comandos",
+      "h"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "kick",
+    "category": "moderation",
+    "description": "Expulsa a un miembro.",
+    "usage": "<usuario> [razón]",
+    "examples": [
+      "kick @Rogue comportamiento tóxico"
+    ],
+    "aliases": [
+      "expulsar",
+      "echar"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "KickMembers"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "lock",
+    "category": "moderation",
+    "description": "Prohíbe a @everyone enviar mensajes en un canal específico.",
+    "usage": "[canal] [razón]",
+    "examples": [
+      "lock",
+      "lock #general limpieza"
+    ],
+    "aliases": [
+      "bloquear",
+      "cerrar"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ManageChannels"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "move",
+    "category": "moderation",
+    "description": "Mueve a un miembro a un canal de voz.",
+    "usage": "<usuario> <canal>",
+    "examples": [
+      "move @Rogue General"
+    ],
+    "aliases": [
+      "mover-a",
+      "moverusuario"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "MoveMembers"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "moveme",
+    "category": "general",
+    "description": "Te mueve a un canal de voz.",
+    "usage": "<canal>",
+    "examples": [
+      "moveme General"
+    ],
+    "aliases": [
+      "muevame",
+      "mover"
+    ],
+    "premium": false,
+    "cooldown": 5,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "mute",
+    "category": "moderation",
+    "description": "Silencia a un miembro en los canales de texto o de voz.",
+    "usage": "<text|voice> <usuario> [duración] [razón]",
+    "examples": [
+      "mute text @Rogue 1h spam",
+      "mute voice @Rogue gritar"
+    ],
+    "aliases": [
+      "silenciar"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ModerateMembers"
+    ],
+    "subcommands": [
+      {
+        "name": "text",
+        "description": "Silenciar a un miembro para que no pueda escribir en los canales de texto."
+      },
+      {
+        "name": "voice",
+        "description": "Silenciar a un miembro para que no pueda hablar en los canales de voz."
+      }
+    ]
+  },
+  {
+    "name": "points",
+    "category": "moderation",
+    "description": "Un servidor basado en puntos que pueden ser dados por los moderadores.",
+    "usage": "<add|remove|view|top> [usuario] [cantidad]",
+    "examples": [
+      "points add @Rogue 5",
+      "points view @Rogue",
+      "points top"
+    ],
+    "aliases": [
+      "puntos"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ModerateMembers"
+    ],
+    "subcommands": [
+      {
+        "name": "add",
+        "description": "Da puntos a un miembro."
+      },
+      {
+        "name": "remove",
+        "description": "Quita puntos a un miembro."
+      },
+      {
+        "name": "view",
+        "description": "Consulta los puntos de un miembro."
+      },
+      {
+        "name": "top",
+        "description": "Muestra el ranking de puntos del servidor."
+      }
+    ]
+  },
+  {
+    "name": "profile",
+    "category": "levels",
+    "description": "Mira tu tarjeta de perfil personal o la de otra persona.",
+    "usage": "[usuario]",
+    "examples": [
+      "profile",
+      "profile @Rogue"
+    ],
+    "aliases": [
+      "perfil"
+    ],
+    "premium": false,
+    "cooldown": 8,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "rank",
+    "category": "levels",
+    "description": "Mira tu tarjeta de rango de servidor o la de otra persona.",
+    "usage": "[usuario]",
+    "examples": [
+      "rank",
+      "rank @Rogue"
+    ],
+    "aliases": [
+      "rango",
+      "nivel",
+      "level"
+    ],
+    "premium": false,
+    "cooldown": 8,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "rep",
+    "category": "general",
+    "description": "Otorga a alguien un punto de reputación. Solo se puede utilizar una vez cada 24 horas.",
+    "usage": "<usuario>",
+    "examples": [
+      "rep @Rogue"
+    ],
+    "aliases": [
+      "reputacion",
+      "reputación"
+    ],
+    "premium": false,
+    "cooldown": 5,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "reset",
+    "category": "moderation",
+    "description": "Restablece texto/voz/invitaciones/puntos de XP para todos los miembros.",
+    "usage": "<text|voice|invites|points|all> [usuario]",
+    "examples": [
+      "reset text",
+      "reset all @Rogue"
+    ],
+    "aliases": [
+      "reiniciar",
+      "restablecer"
+    ],
+    "premium": false,
+    "cooldown": 10,
+    "userPermissions": [
+      "Administrator"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "role",
+    "category": "moderation",
+    "description": "Agregar/Quitar role/s para un miembro.",
+    "usage": "<add|remove> <usuario> <rol>",
+    "examples": [
+      "role add @Rogue Moderador",
+      "role remove @Rogue Moderador"
+    ],
+    "aliases": [
+      "rol",
+      "darrol"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ManageRoles"
+    ],
+    "subcommands": [
+      {
+        "name": "add",
+        "description": "Agrega un rol a un miembro."
+      },
+      {
+        "name": "remove",
+        "description": "Quita un rol a un miembro."
+      },
+      {
+        "name": "all",
+        "description": "Añade un rol a todos los miembros del servidor."
+      }
+    ]
+  },
+  {
+    "name": "roles",
+    "category": "info",
+    "description": "Obtener una lista de roles de servidor y los miembros dentro.",
+    "usage": "[rol]",
+    "examples": [
+      "roles",
+      "roles @Moderador"
+    ],
+    "aliases": [
+      "listaroles",
+      "roleinfo"
+    ],
+    "premium": false,
+    "cooldown": 8,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "roll",
+    "category": "general",
+    "description": "Tira un dado.",
+    "usage": "[dados]",
+    "examples": [
+      "roll",
+      "roll 2d20",
+      "roll 3d6+2"
+    ],
+    "aliases": [
+      "dado",
+      "dados",
+      "dice"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "server",
+    "category": "info",
+    "description": "Muestra información sobre el servidor.",
+    "usage": "",
+    "examples": [
+      "server"
+    ],
+    "aliases": [
+      "servidor",
+      "serverinfo",
+      "si"
+    ],
+    "premium": false,
+    "cooldown": 5,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "setcolor",
+    "category": "moderation",
+    "description": "Cambia el color del rol por códigos hexadecimales.",
+    "usage": "<rol> <#hex>",
+    "examples": [
+      "setcolor @Moderador #5865F2",
+      "setcolor Miembro f00"
+    ],
+    "aliases": [
+      "colorrol",
+      "rolcolor"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ManageRoles"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "setlevel",
+    "category": "levels",
+    "description": "Establece el nivel del usuario.",
+    "usage": "<usuario> <nivel>",
+    "examples": [
+      "setlevel @Rogue 25"
+    ],
+    "aliases": [
+      "establecernivel"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ManageGuild"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "setnick",
+    "category": "moderation",
+    "description": "Cambia el apodo de un miembro.",
+    "usage": "<usuario> [apodo]",
+    "examples": [
+      "setnick @Rogue Fundador",
+      "setnick @Rogue"
+    ],
+    "aliases": [
+      "nick",
+      "apodo",
+      "nickname"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ManageNicknames"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "setxp",
+    "category": "levels",
+    "description": "Establece el xp del usuario.",
+    "usage": "<usuario> <cantidad>",
+    "examples": [
+      "setxp @Rogue 5000"
+    ],
+    "aliases": [
+      "establecerxp"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ManageGuild"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "short",
+    "category": "general",
+    "description": "Acorta una URL.",
+    "usage": "<url>",
+    "examples": [
+      "short https://ejemplo.com/una/ruta/muy/larga"
+    ],
+    "aliases": [
+      "acortar",
+      "shorten"
+    ],
+    "premium": false,
+    "cooldown": 10,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "slowmode",
+    "category": "moderation",
+    "description": "Habilita o deshabilita el modo lento en un canal.",
+    "usage": "<duración|off> [canal]",
+    "examples": [
+      "slowmode 10s",
+      "slowmode 5m #general",
+      "slowmode off"
+    ],
+    "aliases": [
+      "modolento",
+      "lento"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ManageChannels"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "starboard",
+    "category": "moderation",
+    "description": "Resaltar mensajes destacados.",
+    "usage": "<config|channel|emoji|threshold|toggle> [valor]",
+    "examples": [
+      "starboard config",
+      "starboard channel #destacados",
+      "starboard threshold 5"
+    ],
+    "aliases": [
+      "destacados",
+      "tablero"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ManageGuild"
+    ],
+    "subcommands": [
+      {
+        "name": "config",
+        "description": "Muestra la configuración actual del starboard."
+      },
+      {
+        "name": "channel",
+        "description": "Elige el canal donde se publican los mensajes destacados."
+      },
+      {
+        "name": "emoji",
+        "description": "Cambia el emoji que destaca los mensajes."
+      },
+      {
+        "name": "threshold",
+        "description": "Cuántas reacciones hacen falta para destacar un mensaje."
+      },
+      {
+        "name": "toggle",
+        "description": "Activa o desactiva el starboard."
+      }
+    ]
+  },
+  {
+    "name": "timeout",
+    "category": "moderation",
+    "description": "Aísla a un usuario.",
+    "usage": "<usuario> <duración> [razón]",
+    "examples": [
+      "timeout @Rogue 1h spam",
+      "timeout @Rogue 30m"
+    ],
+    "aliases": [
+      "aislar",
+      "tempmute"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ModerateMembers"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "title",
+    "category": "levels",
+    "description": "Cambia el título de tu perfil.",
+    "usage": "<texto>",
+    "examples": [
+      "title Fundador de TK$",
+      "title quitar"
+    ],
+    "aliases": [
+      "titulo",
+      "título"
+    ],
+    "premium": false,
+    "cooldown": 10,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "top",
+    "category": "levels",
+    "description": "Muestra los miembros principales por texto o voz.",
+    "usage": "[texto|voz|invitaciones]",
+    "examples": [
+      "top",
+      "top voz",
+      "top invitaciones"
+    ],
+    "aliases": [
+      "ranking",
+      "leaderboard",
+      "lb"
+    ],
+    "premium": false,
+    "cooldown": 10,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "unban",
+    "category": "moderation",
+    "description": "Desbanea a un miembro.",
+    "usage": "<id o nombre> [razón]",
+    "examples": [
+      "unban 123456789012345678",
+      "unban Rogue perdón concedido"
+    ],
+    "aliases": [
+      "desbanear"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "BanMembers"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "unlock",
+    "category": "moderation",
+    "description": "Permite a @everyone hablar en un canal específico.",
+    "usage": "[canal] [razón]",
+    "examples": [
+      "unlock",
+      "unlock #general"
+    ],
+    "aliases": [
+      "desbloquear",
+      "abrir"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ManageChannels"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "unmute",
+    "category": "moderation",
+    "description": "Remueve el silencio de un miembro, en texto o en voz.",
+    "usage": "<text|voice> <usuario> [razón]",
+    "examples": [
+      "unmute text @Rogue",
+      "unmute voice @Rogue"
+    ],
+    "aliases": [
+      "desilenciar",
+      "quitarsilencio"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ModerateMembers"
+    ],
+    "subcommands": [
+      {
+        "name": "text",
+        "description": "Remover el silencio de un miembro en los canales de texto."
+      },
+      {
+        "name": "voice",
+        "description": "Quita el silencio de un miembro en los canales de voz."
+      }
+    ]
+  },
+  {
+    "name": "untimeout",
+    "category": "moderation",
+    "description": "Elimina el aislamiento de un usuario.",
+    "usage": "<usuario> [razón]",
+    "examples": [
+      "untimeout @Rogue"
+    ],
+    "aliases": [
+      "desaislar",
+      "quitaraislamiento"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ModerateMembers"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "user",
+    "category": "info",
+    "description": "Muestra información, como el ID y la fecha de registro, sobre ti o un usuario.",
+    "usage": "[usuario]",
+    "examples": [
+      "user",
+      "user @Rogue"
+    ],
+    "aliases": [
+      "usuario",
+      "userinfo",
+      "ui"
+    ],
+    "premium": false,
+    "cooldown": 5,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "vip",
+    "category": "premium",
+    "description": "Muestra información sobre tu bot premium.",
+    "usage": "",
+    "examples": [
+      "vip"
+    ],
+    "aliases": [
+      "premium",
+      "membresia",
+      "membresía"
+    ],
+    "premium": false,
+    "cooldown": 5,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "vkick",
+    "category": "moderation",
+    "description": "Expulsa a un miembro de un canal de voz.",
+    "usage": "<usuario> [razón]",
+    "examples": [
+      "vkick @Rogue molestar en voz"
+    ],
+    "aliases": [
+      "voicekick",
+      "expulsarvoz"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "MoveMembers"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "warn",
+    "category": "moderation",
+    "description": "Advierte a un miembro.",
+    "usage": "<usuario> [razón]",
+    "examples": [
+      "warn @Rogue no hagas spam"
+    ],
+    "aliases": [
+      "advertir",
+      "aviso"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ModerateMembers"
+    ],
+    "subcommands": []
+  },
+  {
+    "name": "warn_remove",
+    "category": "moderation",
+    "description": "Eliminar advertencias para el servidor o usuario.",
+    "usage": "<case|user|server> [valor]",
+    "examples": [
+      "warn_remove case 12",
+      "warn_remove user @Rogue",
+      "warn_remove server"
+    ],
+    "aliases": [
+      "delwarn",
+      "quitaradvertencia",
+      "unwarn"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ModerateMembers"
+    ],
+    "subcommands": [
+      {
+        "name": "case",
+        "description": "Elimina una advertencia concreta por su número de caso."
+      },
+      {
+        "name": "user",
+        "description": "Elimina todas las advertencias de un usuario."
+      },
+      {
+        "name": "server",
+        "description": "Elimina todas las advertencias del servidor."
+      }
+    ]
+  },
+  {
+    "name": "warnings",
+    "category": "moderation",
+    "description": "Obtiene la lista de advertencias del servidor o de un usuario.",
+    "usage": "[usuario]",
+    "examples": [
+      "warnings",
+      "warnings @Rogue"
+    ],
+    "aliases": [
+      "advertencias",
+      "warns"
+    ],
+    "premium": false,
+    "cooldown": 5,
+    "userPermissions": [
+      "ModerateMembers"
+    ],
+    "subcommands": []
+  }
+]

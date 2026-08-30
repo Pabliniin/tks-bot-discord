@@ -1,0 +1,81 @@
+# Despliegue completo de TK$ Bot con Docker.
+#
+# Sirve para dos cosas:
+#   1. Probarlo todo en tu PC:   docker compose up --build
+#   2. Pegarlo en el servicio "Compose" de Easypanel
+#
+# Antes de arrancar, crea un archivo .env junto a este con tus valores
+# (ver .env.example). Docker Compose lo lee automáticamente.
+
+services:
+  # ── Base de datos ──────────────────────────────────────────
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-tkbot}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-cambia_esta_contrasena}
+      MONGO_INITDB_DATABASE: tkbot
+    volumes:
+      - mongo-data:/data/db
+    # No se publica ningún puerto: solo la alcanzan el bot y la web
+    # por la red interna de Docker.
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Bot de Discord ─────────────────────────────────────────
+  bot:
+    build:
+      context: .
+      dockerfile: apps/bot/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+      DISCORD_DEV_GUILD_ID: ${DISCORD_DEV_GUILD_ID:-}
+      BOT_OWNERS: ${BOT_OWNERS:-}
+      MONGODB_URI: mongodb://${MONGO_USER:-tkbot}:${MONGO_PASSWORD:-cambia_esta_contrasena}@mongo:27017/tkbot?authSource=admin
+      # 0.0.0.0 para que el contenedor de la web pueda llegar a la API.
+      BOT_API_HOST: 0.0.0.0
+      BOT_API_PORT: 3001
+      BOT_API_SECRET: ${BOT_API_SECRET}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+    # Tampoco se publica el 3001: la API nunca debe salir a internet.
+
+  # ── Panel web ──────────────────────────────────────────────
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - bot
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+      DISCORD_REDIRECT_URI: ${DISCORD_REDIRECT_URI}
+      MONGODB_URI: mongodb://${MONGO_USER:-tkbot}:${MONGO_PASSWORD:-cambia_esta_contrasena}@mongo:27017/tkbot?authSource=admin
+      SESSION_SECRET: ${SESSION_SECRET}
+      # `bot` es el nombre del servicio: Docker lo resuelve por DNS interno.
+      BOT_API_URL: http://bot:3001
+      BOT_API_SECRET: ${BOT_API_SECRET}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+      NEXT_PUBLIC_BOT_NAME: ${NEXT_PUBLIC_BOT_NAME:-TK$$ Bot}
+      NEXT_PUBLIC_SUPPORT_INVITE: ${NEXT_PUBLIC_SUPPORT_INVITE:-}
+      NEXT_PUBLIC_TWITTER_URL: ${NEXT_PUBLIC_TWITTER_URL:-}
+      NEXT_PUBLIC_TOPGG_URL: ${NEXT_PUBLIC_TOPGG_URL:-}
+
+volumes:
+  mongo-data:

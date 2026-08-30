@@ -1,0 +1,19 @@
+node_modules/
+.env
+.env.local
+.next/
+out/
+dist/
+build/
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+coverage/
+.turbo/
+apps/web/.next/
+logs/
+apps/bot/logs/
+
+# Marca de que los comandos de barra ya se registraron (local)
+.comandos-registrados

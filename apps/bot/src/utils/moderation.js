@@ -1,0 +1,160 @@
+'use strict';
+
+const { EmbedBuilder } = require('discord.js');
+const { Case, Member } = require('@tkbot/shared');
+
+const { EMBED_COLORS } = require('@tkbot/shared');
+const { formatDuration, discordTimestamp } = require('./time');
+const logger = require('./logger');
+
+/** Etiquetas en español y color de cada tipo de sanción. */
+const ACTION_META = {
+  ban: { label: 'Baneo', emoji: '🔨', color: EMBED_COLORS.error },
+  unban: { label: 'Desbaneo', emoji: '♻️', color: EMBED_COLORS.success },
+  softban: { label: 'Softban', emoji: '🧹', color: EMBED_COLORS.error },
+  kick: { label: 'Expulsión', emoji: '👢', color: EMBED_COLORS.warning },
+  vkick: { label: 'Expulsión de voz', emoji: '🔇', color: EMBED_COLORS.warning },
+  warn: { label: 'Advertencia', emoji: '⚠️', color: EMBED_COLORS.warning },
+  timeout: { label: 'Aislamiento', emoji: '⏳', color: EMBED_COLORS.warning },
+  untimeout: { label: 'Fin del aislamiento', emoji: '✅', color: EMBED_COLORS.success },
+  mute: { label: 'Silenciado', emoji: '🔕', color: EMBED_COLORS.warning },
+  unmute: { label: 'Sin silencio', emoji: '🔔', color: EMBED_COLORS.success },
+  vmute: { label: 'Silenciado en voz', emoji: '🎙️', color: EMBED_COLORS.warning },
+  vunmute: { label: 'Sin silencio en voz', emoji: '🎙️', color: EMBED_COLORS.success },
+  clear: { label: 'Mensajes eliminados', emoji: '🧹', color: EMBED_COLORS.neutral },
+  points: { label: 'Puntos', emoji: '🔢', color: EMBED_COLORS.neutral },
+  automod: { label: 'AutoMod', emoji: '🤖', color: EMBED_COLORS.error },
+};
+
+/**
+ * Siguiente número de caso del servidor.
+ * Se lee el último caso en vez de guardar un contador aparte para que el
+ * histórico siga siendo correcto aunque se borren documentos.
+ */
+async function nextCaseId(guildId) {
+  const last = await Case.findOne({ guildId }).sort({ caseId: -1 }).select('caseId').lean();
+  return (last?.caseId || 0) + 1;
+}
+
+/**
+ * Registra una sanción y la envía al canal de logs.
+ *
+ * @param {import('discord.js').Guild} guild
+ * @param {object} data
+ * @param {string} data.type Tipo de sanción.
+ * @param {import('discord.js').User} data.user Sancionado.
+ * @param {import('discord.js').User} data.moderator Quién sanciona.
+ * @param {string} [data.reason]
+ * @param {number|null} [data.duration] Duración en ms para sanciones temporales.
+ * @param {object} [settings] Configuración del servidor (para el canal de logs).
+ * @returns {Promise<object>} El caso creado.
+ */
+async function createCase(guild, data, settings = null) {
+  const caseId = await nextCaseId(guild.id);
+  const reason = (data.reason || 'Sin razón especificada').slice(0, 1000);
+  const duration = Number.isFinite(data.duration) ? data.duration : null;
+
+  const doc = await Case.create({
+    guildId: guild.id,
+    caseId,
+    type: data.type,
+    userId: data.user.id,
+    userTag: data.user.tag ?? data.user.username,
+    moderatorId: data.moderator.id,
+    moderatorTag: data.moderator.tag ?? data.moderator.username,
+    reason,
+    duration,
+    expiresAt: duration ? new Date(Date.now() + duration) : null,
+  });
+
+  // Las advertencias llevan contador propio para consultarlo rápido.
+  if (data.type === 'warn') {
+    await Member.updateOne(
+      { guildId: guild.id, userId: data.user.id },
+      { $inc: { warnCount: 1 }, $setOnInsert: { guildId: guild.id, userId: data.user.id } },
+      { upsert: true }
+    );
+  }
+
+  await sendModerationLog(guild, doc, settings).catch((err) =>
+    logger.debug('No se pudo enviar el log de moderación:', err.message)
+  );
+
+  return doc;
+}
+
+/** Construye el embed del registro de una sanción. */
+function buildCaseEmbed(caseDoc) {
+  const meta = ACTION_META[caseDoc.type] || {
+    label: caseDoc.type,
+    emoji: '📌',
+    color: EMBED_COLORS.neutral,
+  };
+
+  const embed = new EmbedBuilder()
+    .setColor(meta.color)
+    .setAuthor({ name: `${meta.emoji} ${meta.label} · Caso #${caseDoc.caseId}` })
+    .addFields(
+      { name: 'Usuario', value: `<@${caseDoc.userId}>\n\`${caseDoc.userId}\``, inline: true },
+      { name: 'Moderador', value: `<@${caseDoc.moderatorId}>`, inline: true }
+    )
+    .setTimestamp(caseDoc.createdAt || new Date());
+
+  if (caseDoc.duration) {
+    embed.addFields({
+      name: 'Duración',
+      value: `${formatDuration(caseDoc.duration)}\nExpira ${discordTimestamp(caseDoc.expiresAt, 'R')}`,
+      inline: true,
+    });
+  }
+
+  embed.addFields({ name: 'Razón', value: caseDoc.reason || 'Sin razón especificada' });
+  return embed;
+}
+
+/** Envía el caso al canal de logs de moderación si está configurado. */
+async function sendModerationLog(guild, caseDoc, settings) {
+  if (!settings?.logs?.enabled) return;
+
+  const events = settings.logs.events;
+  const config = typeof events?.get === 'function' ? events.get('moderation') : events?.moderation;
+  if (config && config.enabled === false) return;
+
+  const channelId = config?.channelId || settings.logs.defaultChannelId;
+  if (!channelId) return;
+
+  const channel = guild.channels.cache.get(channelId);
+  if (!channel?.isTextBased()) return;
+
+  const message = await channel.send({ embeds: [buildCaseEmbed(caseDoc)] });
+  // Guardar el ID permite editar el registro si el caso cambia.
+  await Case.updateOne({ _id: caseDoc._id }, { logMessageId: message.id }).catch(() => {});
+}
+
+/**
+ * Avisa por privado al usuario sancionado.
+ * Falla en silencio: mucha gente tiene los mensajes privados cerrados.
+ */
+async function notifyUser(user, guild, type, reason, duration = null) {
+  const meta = ACTION_META[type] || { label: type, emoji: '📌', color: EMBED_COLORS.neutral };
+
+  const embed = new EmbedBuilder()
+    .setColor(meta.color)
+    .setTitle(`${meta.emoji} ${meta.label}`)
+    .setDescription(`Has recibido una sanción en **${guild.name}**.`)
+    .addFields({ name: 'Razón', value: reason || 'Sin razón especificada' })
+    .setTimestamp();
+
+  if (duration) {
+    embed.addFields({ name: 'Duración', value: formatDuration(duration), inline: true });
+  }
+
+  try {
+    await user.send({ embeds: [embed] });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+module.exports = { ACTION_META, nextCaseId, createCase, buildCaseEmbed, sendModerationLog, notifyUser };

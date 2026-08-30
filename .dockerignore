@@ -1,0 +1,40 @@
+# Dependencias y compilaciones: se generan dentro de la imagen.
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+build
+
+# Secretos: NUNCA deben entrar en la imagen.
+# Las variables se pasan desde Easypanel o docker compose.
+.env
+.env.local
+**/.env
+**/.env.local
+
+# Control de versiones y editores.
+.git
+.gitignore
+.editorconfig
+.claude
+.vscode
+.idea
+
+# Registros y temporales.
+logs
+*.log
+npm-debug.log*
+.comandos-registrados
+
+# Archivos que solo sirven en Windows o en local.
+*.bat
+Thumbs.db
+.DS_Store
+
+# Documentación: no hace falta dentro del contenedor.
+README.md
+DEPLOY.md
+EASYPANEL.md
+deploy
+ecosystem.config.js

@@ -1,0 +1,538 @@
+{
+  "BRAND": {
+    "name": "TK$ Bot",
+    "shortName": "TK$",
+    "tagline": "Un bot multipropósito muy personalizable para imagen de bienvenida, registros en profundidad, comandos sociales, moderación y muchos más ...",
+    "color": 5793266,
+    "colors": {
+      "primary": "#5865F2",
+      "success": "#3BA55D",
+      "danger": "#ED4245",
+      "warning": "#FAA81A",
+      "dark": "#1E1F22"
+    }
+  },
+  "EMBED_COLORS": {
+    "default": 5793266,
+    "success": 3908957,
+    "error": 15548997,
+    "warning": 16427034,
+    "info": 5793266,
+    "neutral": 2829617
+  },
+  "COMMAND_CATEGORIES": {
+    "general": {
+      "id": "general",
+      "es": "General",
+      "en": "General",
+      "emoji": "🎮"
+    },
+    "levels": {
+      "id": "levels",
+      "es": "Niveles",
+      "en": "Levels",
+      "emoji": "📈"
+    },
+    "info": {
+      "id": "info",
+      "es": "Información",
+      "en": "Information",
+      "emoji": "ℹ️"
+    },
+    "moderation": {
+      "id": "moderation",
+      "es": "Moderación",
+      "en": "Moderation",
+      "emoji": "🛡️"
+    },
+    "premium": {
+      "id": "premium",
+      "es": "Premium",
+      "en": "Premium",
+      "emoji": "💎"
+    }
+  },
+  "MODULES": [
+    {
+      "id": "welcome",
+      "es": "Bienvenida y Despedida",
+      "en": "Welcome & Goodbye",
+      "icon": "👋",
+      "premium": false,
+      "group": "engagement"
+    },
+    {
+      "id": "autoresponder",
+      "es": "Respuesta Automática",
+      "en": "Autoresponder",
+      "icon": "💬",
+      "premium": false,
+      "group": "engagement"
+    },
+    {
+      "id": "embeds",
+      "es": "Mensajes Embed",
+      "en": "Embed Messages",
+      "icon": "📋",
+      "premium": false,
+      "group": "engagement"
+    },
+    {
+      "id": "levels",
+      "es": "Sistema de niveles",
+      "en": "Leveling System",
+      "icon": "📈",
+      "premium": false,
+      "group": "engagement"
+    },
+    {
+      "id": "autoroles",
+      "es": "Auto-Roles",
+      "en": "Auto Roles",
+      "icon": "🎭",
+      "premium": false,
+      "group": "roles"
+    },
+    {
+      "id": "logs",
+      "es": "Logs",
+      "en": "Logs",
+      "icon": "📜",
+      "premium": false,
+      "group": "server"
+    },
+    {
+      "id": "colors",
+      "es": "Colores",
+      "en": "Colors",
+      "icon": "🎨",
+      "premium": false,
+      "group": "roles"
+    },
+    {
+      "id": "selfroles",
+      "es": "Roles AutoAsignables",
+      "en": "Self-Assignable Roles",
+      "icon": "✅",
+      "premium": false,
+      "group": "roles"
+    },
+    {
+      "id": "tempchannels",
+      "es": "Canales Temporales",
+      "en": "Temporary Channels",
+      "icon": "🔊",
+      "premium": false,
+      "group": "server"
+    },
+    {
+      "id": "templinks",
+      "es": "Enlaces Temporales",
+      "en": "Temporary Links",
+      "icon": "🔗",
+      "premium": false,
+      "group": "server"
+    },
+    {
+      "id": "antiraid",
+      "es": "Anti-Raid",
+      "en": "Anti-Raid",
+      "icon": "🚨",
+      "premium": true,
+      "group": "protection"
+    },
+    {
+      "id": "vipProtection",
+      "es": "Protección VIP",
+      "en": "VIP Protection",
+      "icon": "🛡️",
+      "premium": true,
+      "group": "protection"
+    },
+    {
+      "id": "starboard",
+      "es": "Starboard",
+      "en": "Starboard",
+      "icon": "⭐",
+      "premium": false,
+      "group": "engagement"
+    },
+    {
+      "id": "automod",
+      "es": "AutoMod",
+      "en": "AutoMod",
+      "icon": "⚙️",
+      "premium": false,
+      "group": "protection"
+    },
+    {
+      "id": "tickets",
+      "es": "Tickets",
+      "en": "Tickets",
+      "icon": "🎫",
+      "premium": false,
+      "group": "server"
+    }
+  ],
+  "MODULE_GROUPS": {
+    "engagement": {
+      "es": "Participación",
+      "en": "Engagement"
+    },
+    "roles": {
+      "es": "Roles",
+      "en": "Roles"
+    },
+    "protection": {
+      "es": "Protección",
+      "en": "Protection"
+    },
+    "server": {
+      "es": "Servidor",
+      "en": "Server"
+    }
+  },
+  "LOG_EVENTS": [
+    {
+      "id": "messageDelete",
+      "es": "Mensajes eliminados",
+      "en": "Deleted messages"
+    },
+    {
+      "id": "messageUpdate",
+      "es": "Mensajes editados",
+      "en": "Edited messages"
+    },
+    {
+      "id": "messageBulkDelete",
+      "es": "Eliminación masiva",
+      "en": "Bulk delete"
+    },
+    {
+      "id": "memberJoin",
+      "es": "Miembro se une",
+      "en": "Member joined"
+    },
+    {
+      "id": "memberLeave",
+      "es": "Miembro se va",
+      "en": "Member left"
+    },
+    {
+      "id": "memberUpdate",
+      "es": "Miembro actualizado",
+      "en": "Member updated"
+    },
+    {
+      "id": "memberBan",
+      "es": "Miembro baneado",
+      "en": "Member banned"
+    },
+    {
+      "id": "memberUnban",
+      "es": "Miembro desbaneado",
+      "en": "Member unbanned"
+    },
+    {
+      "id": "memberKick",
+      "es": "Miembro expulsado",
+      "en": "Member kicked"
+    },
+    {
+      "id": "memberTimeout",
+      "es": "Miembro aislado",
+      "en": "Member timed out"
+    },
+    {
+      "id": "nicknameUpdate",
+      "es": "Apodo cambiado",
+      "en": "Nickname changed"
+    },
+    {
+      "id": "roleCreate",
+      "es": "Rol creado",
+      "en": "Role created"
+    },
+    {
+      "id": "roleDelete",
+      "es": "Rol eliminado",
+      "en": "Role deleted"
+    },
+    {
+      "id": "roleUpdate",
+      "es": "Rol actualizado",
+      "en": "Role updated"
+    },
+    {
+      "id": "channelCreate",
+      "es": "Canal creado",
+      "en": "Channel created"
+    },
+    {
+      "id": "channelDelete",
+      "es": "Canal eliminado",
+      "en": "Channel deleted"
+    },
+    {
+      "id": "channelUpdate",
+      "es": "Canal actualizado",
+      "en": "Channel updated"
+    },
+    {
+      "id": "voiceJoin",
+      "es": "Entra a voz",
+      "en": "Voice join"
+    },
+    {
+      "id": "voiceLeave",
+      "es": "Sale de voz",
+      "en": "Voice leave"
+    },
+    {
+      "id": "voiceMove",
+      "es": "Cambia de voz",
+      "en": "Voice move"
+    },
+    {
+      "id": "inviteCreate",
+      "es": "Invitación creada",
+      "en": "Invite created"
+    },
+    {
+      "id": "inviteDelete",
+      "es": "Invitación eliminada",
+      "en": "Invite deleted"
+    },
+    {
+      "id": "emojiUpdate",
+      "es": "Emojis actualizados",
+      "en": "Emojis updated"
+    },
+    {
+      "id": "serverUpdate",
+      "es": "Servidor actualizado",
+      "en": "Server updated"
+    },
+    {
+      "id": "moderation",
+      "es": "Acciones de moderación",
+      "en": "Moderation actions"
+    },
+    {
+      "id": "automod",
+      "es": "Acciones de AutoMod",
+      "en": "AutoMod actions"
+    }
+  ],
+  "AUTOMOD_FILTERS": [
+    {
+      "id": "invites",
+      "es": "Anti-Invitaciones",
+      "en": "Anti-Invites",
+      "desc_es": "Bloquea enlaces de invitación a otros servidores."
+    },
+    {
+      "id": "links",
+      "es": "Anti-Enlaces",
+      "en": "Anti-Links",
+      "desc_es": "Bloquea cualquier enlace externo."
+    },
+    {
+      "id": "words",
+      "es": "Palabras Prohibidas",
+      "en": "Banned Words",
+      "desc_es": "Bloquea mensajes que contengan palabras de tu lista."
+    },
+    {
+      "id": "caps",
+      "es": "Anti-Mayúsculas",
+      "en": "Anti-Caps",
+      "desc_es": "Bloquea mensajes con exceso de mayúsculas."
+    },
+    {
+      "id": "spam",
+      "es": "Anti-Spam",
+      "en": "Anti-Spam",
+      "desc_es": "Bloquea el envío rápido de muchos mensajes."
+    },
+    {
+      "id": "mentions",
+      "es": "Anti-Menciones",
+      "en": "Anti-Mentions",
+      "desc_es": "Bloquea mensajes con demasiadas menciones."
+    },
+    {
+      "id": "emojis",
+      "es": "Anti-Emojis",
+      "en": "Anti-Emojis",
+      "desc_es": "Bloquea mensajes con demasiados emojis."
+    },
+    {
+      "id": "zalgo",
+      "es": "Anti-Zalgo",
+      "en": "Anti-Zalgo",
+      "desc_es": "Bloquea texto deformado o ilegible."
+    },
+    {
+      "id": "attachments",
+      "es": "Anti-Archivos",
+      "en": "Anti-Attachments",
+      "desc_es": "Bloquea el envío de archivos adjuntos."
+    },
+    {
+      "id": "duplicates",
+      "es": "Anti-Duplicados",
+      "en": "Anti-Duplicates",
+      "desc_es": "Bloquea mensajes repetidos consecutivos."
+    },
+    {
+      "id": "newlines",
+      "es": "Anti-Saltos de línea",
+      "en": "Anti-Newlines",
+      "desc_es": "Bloquea mensajes con demasiados saltos de línea."
+    }
+  ],
+  "PUNISHMENTS": [
+    {
+      "id": "none",
+      "es": "Ninguno",
+      "en": "None"
+    },
+    {
+      "id": "delete",
+      "es": "Eliminar mensaje",
+      "en": "Delete message"
+    },
+    {
+      "id": "warn",
+      "es": "Advertir",
+      "en": "Warn"
+    },
+    {
+      "id": "timeout",
+      "es": "Aislar",
+      "en": "Timeout"
+    },
+    {
+      "id": "mute",
+      "es": "Silenciar",
+      "en": "Mute"
+    },
+    {
+      "id": "kick",
+      "es": "Expulsar",
+      "en": "Kick"
+    },
+    {
+      "id": "ban",
+      "es": "Banear",
+      "en": "Ban"
+    }
+  ],
+  "VARIABLES": {
+    "welcome": [
+      {
+        "tag": "[user]",
+        "es": "Menciona al miembro recién llegado"
+      },
+      {
+        "tag": "[inviter]",
+        "es": "Menciona a quien lo invitó"
+      },
+      {
+        "tag": "[server]",
+        "es": "Nombre del servidor"
+      },
+      {
+        "tag": "[userName]",
+        "es": "Nombre del miembro sin mencionarlo"
+      },
+      {
+        "tag": "[inviterName]",
+        "es": "Nombre de quien lo invitó sin mencionarlo"
+      },
+      {
+        "tag": "[memberCount]",
+        "es": "Cantidad de miembros alcanzados"
+      }
+    ],
+    "autoresponder": [
+      {
+        "tag": "[user]",
+        "es": "Menciona al miembro que escribió el desencadenante"
+      },
+      {
+        "tag": "[userName]",
+        "es": "Nombre del usuario que escribió el desencadenante"
+      },
+      {
+        "tag": "[invites]",
+        "es": "Número de invitaciones alcanzadas"
+      }
+    ],
+    "levels": [
+      {
+        "tag": "[level]",
+        "es": "El nivel alcanzado"
+      },
+      {
+        "tag": "[user]",
+        "es": "Menciona al usuario"
+      },
+      {
+        "tag": "[user.username]",
+        "es": "Nombre de usuario"
+      },
+      {
+        "tag": "[user.tag]",
+        "es": "Tag del usuario"
+      },
+      {
+        "tag": "[oldLevel]",
+        "es": "Nivel anterior del usuario"
+      }
+    ]
+  },
+  "LOCALES": [
+    {
+      "id": "es",
+      "name": "Español",
+      "flag": "🇪🇸"
+    },
+    {
+      "id": "en",
+      "name": "English",
+      "flag": "🇬🇧"
+    }
+  ],
+  "PREMIUM_TIERS": {
+    "0": {
+      "name": "Gratis",
+      "maxEmbeds": 5,
+      "maxAutoresponders": 10,
+      "maxSelfroles": 5,
+      "maxTicketPanels": 1,
+      "antiraid": false,
+      "customBot": false
+    },
+    "1": {
+      "name": "Premium 1",
+      "maxEmbeds": 25,
+      "maxAutoresponders": 50,
+      "maxSelfroles": 25,
+      "maxTicketPanels": 5,
+      "antiraid": true,
+      "customBot": false
+    },
+    "2": {
+      "name": "Premium 2",
+      "maxEmbeds": 100,
+      "maxAutoresponders": 200,
+      "maxSelfroles": 100,
+      "maxTicketPanels": 25,
+      "antiraid": true,
+      "customBot": true
+    }
+  },
+  "REQUIRED_PERMISSIONS": "1633094616310"
+}

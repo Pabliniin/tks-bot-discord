@@ -1,0 +1,30 @@
+{
+  "name": "tkbot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TK$ Bot - Bot multipropósito para Discord con panel de control web",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "bot": "npm run dev --workspace @tkbot/bot",
+    "web": "npm run sync:env && npm run dev --workspace @tkbot/web",
+    "deploy": "npm run deploy --workspace @tkbot/bot",
+    "build": "npm run sync:env && npm run build --workspace @tkbot/web",
+    "start:bot": "npm run start --workspace @tkbot/bot",
+    "start:web": "npm run sync:env && npm run start --workspace @tkbot/web",
+    "dev": "concurrently -n bot,web -c cyan,magenta \"npm:bot\" \"npm:web\"",
+    "test": "npm run test --workspace @tkbot/bot && npm run test --workspace @tkbot/web",
+    "lint": "node scripts/fix-bat-files.js && node scripts/check-syntax.js",
+    "gen:commands": "node scripts/generate-command-catalog.js",
+    "sync:env": "node scripts/sync-env.js",
+    "fix:bat": "node scripts/fix-bat-files.js"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
