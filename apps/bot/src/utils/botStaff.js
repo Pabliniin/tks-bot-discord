@@ -106,7 +106,12 @@ async function listStaff() {
     .select('userId botStaff')
     .sort({ 'botStaff.addedAt': 1 })
     .lean()
-    .catch(() => []);
+    .catch((err) => {
+      // Antes se devolvia una lista vacia en silencio: parecia que no habia
+      // personal cuando en realidad habia fallado la consulta.
+      require('./logger').error('No se pudo leer la lista de personal:', err.message);
+      throw err;
+    });
 }
 
 module.exports = { ownerIds, isOwner, isStaff, addStaff, removeStaff, listStaff };

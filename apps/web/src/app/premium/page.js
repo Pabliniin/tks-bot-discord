@@ -3,7 +3,13 @@ import { Check, X, Crown } from 'lucide-react';
 import { PREMIUM_TIERS } from '@tkbot/shared';
 
 import Navbar from '@/components/Navbar';
+import PremiumStatusCard from '@/components/PremiumStatusCard';
+import { getSession } from '@/lib/session';
+import { getUserPremium } from '@/lib/premiumData';
 import Footer from '@/components/Footer';
+
+// Lee la sesion del usuario, asi que no se puede prerenderizar.
+export const dynamic = 'force-dynamic';
 
 export const metadata = {
   title: 'Premium',
@@ -44,7 +50,10 @@ function Mark({ value }) {
   );
 }
 
-export default function PremiumPage() {
+export default async function PremiumPage() {
+  const session = await getSession();
+  const userPremium = session ? await getUserPremium(session.userId) : null;
+
   const botName = process.env.NEXT_PUBLIC_BOT_NAME || 'TK$ Bot';
 
   return (
@@ -61,6 +70,11 @@ export default function PremiumPage() {
             Desbloquea la protección avanzada y amplía todos los límites de tu servidor.
           </p>
         </header>
+
+        <PremiumStatusCard
+          status={session ? userPremium : null}
+          username={session?.username || ''}
+        />
 
         {/* Planes */}
         <div className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-3">
@@ -148,13 +162,36 @@ export default function PremiumPage() {
             </table>
           </div>
 
-          <p className="mt-6 rounded-lg border border-ink-700 bg-ink-800/50 p-4 text-sm leading-relaxed text-ink-300">
-            <strong className="text-ink-100">Nota para el administrador:</strong> los precios son un
-            ejemplo y no hay ninguna pasarela de pago conectada. Para activar Premium en un servidor,
-            edita su documento en MongoDB y pon <code className="rounded bg-ink-900 px-1">premium.tier</code>{' '}
-            a 1 o 2, junto con <code className="rounded bg-ink-900 px-1">premium.until</code>. Cuando
-            quieras cobrar de verdad, integra Stripe o PayPal en esta página.
-          </p>
+          <div className="mt-6 rounded-lg border border-ink-700 bg-ink-800/50 p-4 text-sm leading-relaxed text-ink-300">
+            <p>
+              <strong className="text-ink-100">Nota para el administrador:</strong> los precios son
+              un ejemplo y todavía no hay pasarela de pago conectada. Mientras tanto, el premium se
+              reparte desde Discord con estos comandos:
+            </p>
+            <ul className="mt-3 space-y-1.5">
+              <li>
+                <code className="rounded bg-ink-900 px-1.5 py-0.5 text-brand-300">
+                  /premium add
+                </code>{' '}
+                — activa un plan directamente en un servidor
+              </li>
+              <li>
+                <code className="rounded bg-ink-900 px-1.5 py-0.5 text-brand-300">
+                  /premiumuser add
+                </code>{' '}
+                — da premium a una persona, que luego lo activa donde quiera
+              </li>
+              <li>
+                <code className="rounded bg-ink-900 px-1.5 py-0.5 text-brand-300">/staff add</code>{' '}
+                — decide quién puede repartir premium
+              </li>
+            </ul>
+            <p className="mt-3">
+              Cuando quieras cobrar de verdad, integra Stripe o PayPal aquí y haz que al completarse
+              el pago se ejecute lo mismo que hace{' '}
+              <code className="rounded bg-ink-900 px-1">/premiumuser add</code>.
+            </p>
+          </div>
         </section>
       </main>
 

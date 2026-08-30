@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { getGuildSettings, premiumTier, MODULES, PREMIUM_TIERS } from '@tkbot/shared';
 import { Users, Hash, Crown, CircleCheck, CircleOff, AlertTriangle, ExternalLink } from 'lucide-react';
 
-import { getGuildData } from '@/lib/botApi';
+import { getGuildData, getStats } from '@/lib/botApi';
+import { getGuildPremium, formatDate } from '@/lib/premiumData';
 import { buildInviteUrl } from '@/lib/discord';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +33,11 @@ export default async function GuildOverviewPage({ params }) {
     dbError = error.message;
   }
 
-  const guildData = await getGuildData(guildId);
+  const [guildData, premiumInfo, botStats] = await Promise.all([
+    getGuildData(guildId),
+    getGuildPremium(guildId),
+    getStats(),
+  ]);
   const tier = settings ? premiumTier(settings) : 0;
   const limits = PREMIUM_TIERS[tier];
 
@@ -72,6 +77,31 @@ export default async function GuildOverviewPage({ params }) {
           Estado general del servidor y acceso rápido a los módulos.
         </p>
       </header>
+
+      {/*
+        Aviso de instancias duplicadas. Es el fallo más confuso al desplegar:
+        dos bots con el mismo token y bases de datos distintas hacen que la
+        mitad de las acciones parezcan no funcionar.
+      */}
+      {botStats?.instances > 1 && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-danger/40 bg-danger/10 p-4">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-danger" />
+          <div className="text-sm text-danger">
+            <p className="font-semibold">
+              Hay {botStats.instances} instancias del bot funcionando a la vez.
+            </p>
+            <p className="mt-1 text-danger/80">
+              Discord repartirá los comandos entre todas. Si cada una usa una base de datos
+              distinta, lo que guardes aquí puede no aplicarse, y los registros y comandos
+              funcionarán solo a veces.
+            </p>
+            <p className="mt-1 text-danger/80">
+              Deja encendida <strong>solo una</strong>: si la del servidor está bien, cierra la
+              ventana del bot en tu PC con <kbd>Ctrl</kbd>+<kbd>C</kbd>.
+            </p>
+          </div>
+        </div>
+      )}
 
       {!guildData && (
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 p-4">
@@ -151,16 +181,61 @@ export default async function GuildOverviewPage({ params }) {
         </div>
 
         <div className="card p-5">
-          <h3 className="text-sm font-bold text-white">Límites de tu plan</h3>
-          <ul className="mt-2 space-y-1 text-sm text-ink-200">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="text-sm font-bold text-white">Plan del servidor</h3>
+            <span
+              className={`badge ${
+                tier > 0 ? 'bg-warning/15 text-warning' : 'bg-ink-700 text-ink-300'
+              }`}
+            >
+              {tier > 0 && <Crown size={11} />} {limits.name}
+            </span>
+          </div>
+
+          {/* Estado de la suscripción, con su caducidad. */}
+          {premiumInfo?.active && (
+            <p className="mt-2 text-sm text-ink-200">
+              {premiumInfo.permanent ? (
+                <>Sin fecha de caducidad.</>
+              ) : (
+                <>
+                  Caduca el{' '}
+                  <strong className="text-white">{formatDate(premiumInfo.until)}</strong>
+                  {premiumInfo.daysLeft !== null && (
+                    <span className={premiumInfo.daysLeft <= 7 ? ' text-danger' : ' text-ink-300'}>
+                      {' '}
+                      · quedan {premiumInfo.daysLeft} día
+                      {premiumInfo.daysLeft === 1 ? '' : 's'}
+                    </span>
+                  )}
+                </>
+              )}
+              {premiumInfo.grantedBy && (
+                <span className="block text-xs text-ink-400">
+                  Activado por <code>{premiumInfo.grantedBy}</code>
+                </span>
+              )}
+            </p>
+          )}
+
+          {premiumInfo?.expired && (
+            <p className="mt-2 flex items-start gap-1.5 text-sm text-warning">
+              <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+              El Premium {premiumInfo.storedTier} caducó
+              {premiumInfo.until ? ` el ${formatDate(premiumInfo.until)}` : ''}.
+            </p>
+          )}
+
+          <ul className="mt-3 space-y-1 border-t border-ink-700/60 pt-3 text-sm text-ink-200">
             <li>Embeds guardados: <strong>{limits.maxEmbeds}</strong></li>
             <li>Respuestas automáticas: <strong>{limits.maxAutoresponders}</strong></li>
             <li>Paneles de roles: <strong>{limits.maxSelfroles}</strong></li>
             <li>Paneles de tickets: <strong>{limits.maxTicketPanels}</strong></li>
           </ul>
+
           {tier === 0 && (
             <Link href="/premium" className="btn-secondary mt-4 w-full text-xs">
-              <Crown size={13} /> Ver TK$ Premium
+              <Crown size={13} /> Conseguir TK$ Premium
             </Link>
           )}
         </div>

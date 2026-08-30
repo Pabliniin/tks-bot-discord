@@ -19,7 +19,8 @@
     "lint": "node scripts/fix-bat-files.js && node scripts/check-syntax.js",
     "gen:commands": "node scripts/generate-command-catalog.js",
     "sync:env": "node scripts/sync-env.js",
-    "fix:bat": "node scripts/fix-bat-files.js"
+    "fix:bat": "node scripts/fix-bat-files.js",
+    "gen:docs": "node scripts/generate-command-docs.js"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

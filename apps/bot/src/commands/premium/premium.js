@@ -265,6 +265,11 @@ module.exports = {
       until = new Date(Date.now() + ms);
     }
 
+    // Avisar si el bot no está en ese servidor: lo más habitual es haberse
+    // equivocado de ID (por ejemplo pegar el de un usuario en vez del de un
+    // servidor). El premium se guarda igualmente y se aplicará al invitarlo.
+    const enElServidor = ctx.client.guilds.cache.has(guildId);
+
     settings.set('premium', { tier: nivel, until, grantedBy: ctx.user.id });
     await settings.save();
 
@@ -301,6 +306,14 @@ module.exports = {
       )
       .setFooter({ text: `Concedido por ${ctx.user.tag}` })
       .setTimestamp();
+
+    if (!enElServidor) {
+      embed.addFields({
+        name: '⚠️ Aviso',
+        value:
+          'El bot **no está en ese servidor**. Comprueba que el ID sea correcto: puede que hayas pegado el de un usuario o el de un canal.\n\nSi el ID es correcto, el premium se aplicará en cuanto invites al bot.',
+      });
+    }
 
     await ctx.reply({ embeds: [embed] }, { ephemeral: true });
   },

@@ -7,6 +7,7 @@ const { connect } = require('@tkbot/shared');
 const TKClient = require('./structures/TKClient');
 const logger = require('./utils/logger');
 const startApi = require('./api/server');
+const { reportError } = require('./utils/alerts');
 
 /** Comprueba que estén las variables de entorno imprescindibles. */
 function checkEnvironment() {
@@ -45,7 +46,21 @@ function registerShutdown(getClient) {
     logger.warn(`Recibido ${signal}, cerrando...`);
     try {
       const client = getClient();
-      if (client) await client.destroy();
+
+      // Los módulos pueden tener datos pendientes de guardar (por ejemplo el
+      // contador de comandos, que se vuelca por lotes).
+      if (client) {
+        for (const [nombre, mod] of client.modules) {
+          if (typeof mod.onShutdown !== 'function') continue;
+          try {
+            await mod.onShutdown(client);
+          } catch (err) {
+            logger.debug(`Error al cerrar el módulo ${nombre}: ${err.message}`);
+          }
+        }
+        await client.destroy();
+      }
+
       const { disconnect } = require('@tkbot/shared');
       await disconnect();
     } catch (err) {
@@ -65,9 +80,11 @@ registerShutdown(() => clientRef);
 // Un fallo aislado no debe tumbar el bot entero.
 process.on('unhandledRejection', (reason) => {
   logger.error('Promesa sin gestionar:', reason);
+  reportError('Promesa sin gestionar', reason).catch(() => {});
 });
 process.on('uncaughtException', (err) => {
   logger.error('Excepción no capturada:', err);
+  reportError('Excepción no capturada', err).catch(() => {});
 });
 
 /** Traduce los fallos de arranque más habituales a un mensaje accionable. */

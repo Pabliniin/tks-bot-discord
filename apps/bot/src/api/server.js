@@ -73,7 +73,7 @@ function startApi(client) {
   app.use('/api', auth);
 
   // ── Estadísticas globales ────────────────────────────────────
-  app.get('/api/stats', (req, res) => {
+  app.get('/api/stats', async (req, res) => {
     const guilds = client.guilds.cache;
     res.json({
       guilds: guilds.size,
@@ -83,6 +83,9 @@ function startApi(client) {
       ping: Math.max(0, Math.round(client.ws.ping)),
       uptime: Math.floor((Date.now() - client.startedAt) / 1000),
       cachedSettings: client.settings.size(),
+      // Numero de instancias del bot en marcha. Mas de una suele ser un error
+      // de despliegue y provoca comportamientos aleatorios.
+      instances: await (client.modules.get('instanceGuard')?.contarActivas?.() ?? Promise.resolve(1)),
     });
   });
 

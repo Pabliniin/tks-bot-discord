@@ -1,6 +1,6 @@
 'use strict';
 
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, PermissionsBitField } = require('discord.js');
 const { EMBED_COLORS } = require('@tkbot/shared');
 
 const permissions = require('../utils/permissions');
@@ -11,6 +11,9 @@ const logger = require('../utils/logger');
  *
  * Los eventos de `src/events/logs/*` construyen su embed y lo entregan aquí;
  * este módulo decide si el evento está activo y a qué canal enviarlo.
+ *
+ * Todos los registros de acciones siguen el mismo formato, para que se lea de
+ * un vistazo **quién** ha hecho **qué** y **a quién**.
  */
 
 /**
@@ -103,28 +106,149 @@ function baseEmbed({ title, color = 'neutral', user = null, description = null }
   return embed;
 }
 
+/** Texto para una persona: mención, nombre e identificador. */
+function describeUser(user) {
+  if (!user) return 'Desconocido';
+  const tag = user.tag ?? user.username ?? 'Desconocido';
+  return `<@${user.id}>\n\`${tag}\`\n\`${user.id}\``;
+}
+
+/**
+ * Embed de una acción: **quién** ha hecho **qué** y **a quién**.
+ *
+ * Es el formato que usan todos los registros en los que interviene una
+ * persona sobre otra (sanciones, roles, apodos, movimientos de voz…).
+ *
+ * @param {object} options
+ * @param {string} options.title Qué ha ocurrido.
+ * @param {string} [options.color] Clave de `EMBED_COLORS`.
+ * @param {import('discord.js').User|null} [options.executor] Quién lo ha hecho.
+ * @param {import('discord.js').User|null} [options.target] A quién afecta.
+ * @param {string} [options.detail] Descripción de la acción.
+ * @param {Array<{name:string,value:string,inline?:boolean}>} [options.fields]
+ * @param {boolean} [options.auditUnavailable] El bot no puede leer la auditoría.
+ */
+function actionEmbed({
+  title,
+  color = 'neutral',
+  executor = null,
+  target = null,
+  detail = null,
+  fields = [],
+  auditUnavailable = false,
+}) {
+  const embed = new EmbedBuilder()
+    .setColor(EMBED_COLORS[color] ?? EMBED_COLORS.neutral)
+    .setTitle(title)
+    .setTimestamp();
+
+  // La cabecera es siempre QUIÉN lo hizo. Si no se sabe, el afectado.
+  const cabecera = executor || target;
+  if (cabecera) {
+    embed.setAuthor({
+      name: `${cabecera.tag ?? cabecera.username} (${cabecera.id})`,
+      iconURL: cabecera.displayAvatarURL?.() ?? undefined,
+    });
+  }
+
+  // La foto grande es la del afectado, para reconocerlo de un vistazo.
+  if (target?.displayAvatarURL) {
+    embed.setThumbnail(target.displayAvatarURL());
+  }
+
+  if (detail) embed.setDescription(detail);
+
+  // Quién y a quién, siempre en el mismo sitio y en el mismo orden.
+  if (executor) {
+    embed.addFields({ name: '👮 Lo ha hecho', value: describeUser(executor), inline: true });
+  } else if (target) {
+    embed.addFields({
+      name: '👮 Lo ha hecho',
+      value: auditUnavailable
+        ? 'No se ha podido saber.\n*Falta el permiso «Ver registro de auditoría».*'
+        : 'No se ha podido determinar.',
+      inline: true,
+    });
+  }
+
+  if (target) {
+    embed.addFields({ name: '🎯 Afectado', value: describeUser(target), inline: true });
+  }
+
+  if (fields.length > 0) embed.addFields(fields);
+
+  return embed;
+}
+
 /**
  * Busca en el registro de auditoría quién ejecutó una acción.
- * Discord solo permite consultarlo con permiso de auditoría y el resultado
- * puede tardar, así que se acepta un margen de 5 segundos.
+ *
+ * Discord entrega el evento por la pasarela antes de escribir la entrada de
+ * auditoría, así que si no aparece a la primera se reintenta tras una pausa
+ * corta. Sin esto, muchas acciones aparecerían como «autor desconocido».
+ *
+ * @param {import('discord.js').Guild} guild
+ * @param {number} auditType Tipo de `AuditLogEvent`.
+ * @param {string|null} targetId Sobre quién o qué se actuó.
+ * @param {object} [options]
+ * @param {(entry: object) => boolean} [options.match] Filtro adicional.
+ * @returns {Promise<{ executor: object|null, reason: string|null, entry: object|null, unavailable: boolean }>}
+ */
+async function findAuditEntry(guild, auditType, targetId, options = {}) {
+  const me = guild.members.me;
+  const vacio = { executor: null, reason: null, entry: null, unavailable: false };
+
+  if (!me?.permissions.has(PermissionsBitField.Flags.ViewAuditLog)) {
+    // Sin este permiso nunca se sabrá quién hizo qué: conviene decirlo.
+    return { ...vacio, unavailable: true };
+  }
+
+  const buscar = async () => {
+    const logs = await guild.fetchAuditLogs({ type: auditType, limit: 8 });
+
+    return (
+      logs.entries.find((entry) => {
+        // Solo entradas recientes: si no, se atribuiría una acción antigua.
+        if (Date.now() - entry.createdTimestamp > 10_000) return false;
+        if (targetId && entry.target?.id !== targetId) return false;
+        if (options.match && !options.match(entry)) return false;
+        return true;
+      }) ?? null
+    );
+  };
+
+  try {
+    let entry = await buscar();
+
+    // Segundo intento: la auditoría suele tardar un instante en aparecer.
+    if (!entry) {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      entry = await buscar();
+    }
+
+    if (!entry) return vacio;
+
+    return {
+      executor: entry.executor ?? null,
+      reason: entry.reason ?? null,
+      entry,
+      unavailable: false,
+    };
+  } catch (err) {
+    logger.debug(`No se pudo leer el registro de auditoría: ${err.message}`);
+    return vacio;
+  }
+}
+
+/**
+ * Versión corta cuando solo interesa quién lo hizo.
+ * Se mantiene por compatibilidad con el código existente.
  *
  * @returns {Promise<import('discord.js').User|null>}
  */
 async function findExecutor(guild, auditType, targetId) {
-  const me = guild.members.me;
-  if (!me?.permissions.has('ViewAuditLog')) return null;
-
-  try {
-    const logs = await guild.fetchAuditLogs({ type: auditType, limit: 5 });
-    const entry = logs.entries.find(
-      (e) =>
-        (!targetId || e.target?.id === targetId) &&
-        Date.now() - e.createdTimestamp < 5000
-    );
-    return entry?.executor ?? null;
-  } catch {
-    return null;
-  }
+  const { executor } = await findAuditEntry(guild, auditType, targetId);
+  return executor;
 }
 
 module.exports = {
@@ -135,5 +259,8 @@ module.exports = {
   isIgnoredMember,
   send,
   baseEmbed,
+  actionEmbed,
+  describeUser,
+  findAuditEntry,
   findExecutor,
 };

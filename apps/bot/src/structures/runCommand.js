@@ -116,9 +116,11 @@ async function runCommand(ctx) {
   // ── Ejecución ──────────────────────────────────────────────────
   try {
     await command.execute(ctx);
-    if (settings && typeof settings.stats === 'object') {
-      settings.stats.commandsUsed = (settings.stats.commandsUsed || 0) + 1;
-    }
+
+    // El contador se acumula en memoria y se vuelca cada minuto en un solo
+    // lote: escribir en la base de datos con cada comando no compensa.
+    if (guild) client.modules.get('usageStats')?.registrar(guild.id);
+
     return true;
   } catch (err) {
     if (err instanceof ArgumentError) {
@@ -129,6 +131,14 @@ async function runCommand(ctx) {
     }
 
     logger.error(`Error ejecutando ${command.name}:`, err);
+    require('../utils/alerts')
+      .reportError('Fallo en un comando', err, {
+        Comando: command.name,
+        Servidor: guild?.name || 'mensaje directo',
+        ID: guild?.id || '-',
+        Usuario: user.tag,
+      })
+      .catch(() => {});
     const message =
       'Ha ocurrido un error inesperado al ejecutar el comando. Si se repite, avisa al soporte.';
     await ctx.reply({ embeds: [embeds.error(message)] }, { ephemeral: true }).catch(() => {});

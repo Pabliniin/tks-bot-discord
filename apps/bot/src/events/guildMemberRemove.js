@@ -45,41 +45,69 @@ module.exports = {
       });
     }
 
-    // Distingue entre salida voluntaria y expulsión.
-    const kicker = await logs.findExecutor(member.guild, AuditLogEvent.MemberKick, member.id);
+    // Distingue entre salida voluntaria y expulsión: Discord emite el mismo
+    // evento en ambos casos, y solo la auditoría dice cuál ha sido.
+    const {
+      executor: kicker,
+      reason,
+      unavailable,
+    } = await logs.findAuditEntry(member.guild, AuditLogEvent.MemberKick, member.id);
+
+    const rolesQueTenia = member.roles
+      ? member.roles.cache
+          .filter((r) => r.id !== member.guild.id)
+          .map((r) => `<@&${r.id}>`)
+          .slice(0, 20)
+      : [];
 
     if (kicker) {
-      const embed = logs
-        .baseEmbed({ title: '👢 Miembro expulsado', color: 'warning', user: member.user })
-        .addFields(
-          { name: 'Usuario', value: `${member.user.tag}`, inline: true },
-          { name: 'Moderador', value: `${kicker}`, inline: true }
-        );
+      const fields = [
+        { name: 'Miembros restantes', value: String(member.guild.memberCount), inline: true },
+        {
+          name: 'Llevaba en el servidor',
+          value: member.joinedAt ? discordTimestamp(member.joinedAt, 'R') : 'Desconocido',
+          inline: true,
+        },
+      ];
+      if (reason) fields.push({ name: '📝 Razón', value: reason.slice(0, 1024) });
+
+      const embed = logs.actionEmbed({
+        title: '👢 Ha expulsado a un miembro',
+        color: 'warning',
+        executor: kicker,
+        target: member.user,
+        auditUnavailable: unavailable,
+        fields,
+      });
+
       await logs.send(member.guild, settings, 'memberKick', embed);
       return;
     }
 
-    const embed = logs
-      .baseEmbed({ title: '📤 Miembro se fue', color: 'error', user: member.user })
-      .addFields(
-        { name: 'Usuario', value: `${member.user.tag}`, inline: true },
-        { name: 'Miembros', value: String(member.guild.memberCount), inline: true },
-        {
-          name: 'Se unió',
-          value: member.joinedAt ? discordTimestamp(member.joinedAt, 'R') : 'Desconocido',
-          inline: true,
-        }
-      );
+    // Se marchó por su cuenta.
+    const fields = [
+      { name: 'Miembros restantes', value: String(member.guild.memberCount), inline: true },
+      {
+        name: 'Se unió',
+        value: member.joinedAt ? discordTimestamp(member.joinedAt, 'R') : 'Desconocido',
+        inline: true,
+      },
+    ];
 
-    if (member.roles) {
-      const roles = member.roles.cache
-        .filter((r) => r.id !== member.guild.id)
-        .map((r) => `<@&${r.id}>`)
-        .slice(0, 20);
-      if (roles.length > 0) {
-        embed.addFields({ name: 'Roles que tenía', value: roles.join(' ').slice(0, 1024) });
-      }
+    if (rolesQueTenia.length > 0) {
+      fields.push({
+        name: 'Roles que tenía',
+        value: rolesQueTenia.join(' ').slice(0, 1024),
+      });
     }
+
+    const embed = logs.actionEmbed({
+      title: '📤 Se ha ido del servidor',
+      color: 'error',
+      executor: member.user,
+      detail: 'Se ha marchado por su cuenta.',
+      fields,
+    });
 
     await logs.send(member.guild, settings, 'memberLeave', embed);
   },
