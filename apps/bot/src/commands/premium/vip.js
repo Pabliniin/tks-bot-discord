@@ -14,7 +14,8 @@ const { discordTimestamp } = require('../../utils/time');
 module.exports = {
   name: 'vip',
   category: 'premium',
-  aliases: ['premium', 'membresia', 'membresía'],
+  // `premium` ya no es alias: es el comando de administración de suscripciones.
+  aliases: ['membresia', 'membresía', 'miplan'],
   description: 'Muestra información sobre tu bot premium.',
   usage: '',
   examples: ['vip'],

@@ -34,6 +34,18 @@ const userSchema = new Schema(
       guilds: { type: [String], default: [] },
     },
 
+    /**
+     * Personal del bot: puede repartir premium con el comando `premium`.
+     * Los dueños (variable BOT_OWNERS) tienen acceso siempre, estén aquí o no,
+     * y son los únicos que pueden dar o quitar este permiso.
+     */
+    botStaff: {
+      enabled: { type: Boolean, default: false, index: true },
+      /** Quién le dio el permiso y cuándo, para poder auditarlo. */
+      addedBy: { type: String, default: null },
+      addedAt: { type: Date, default: null },
+    },
+
     /** Idioma preferido para las respuestas en mensaje privado. */
     locale: { type: String, enum: ['es', 'en'], default: 'es' },
     /** Excluido de usar el bot (moderación global). */

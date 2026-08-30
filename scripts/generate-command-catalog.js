@@ -27,6 +27,8 @@ function generateCatalog() {
   client.loadCommands();
 
   const catalog = client.commands
+    // Los comandos de administracion no salen en la web publica.
+    .filter((command) => !command.hidden)
     .map((command) => {
       const json =
         command.data && typeof command.data.toJSON === 'function' ? command.data.toJSON() : null;

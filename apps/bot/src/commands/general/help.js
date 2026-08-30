@@ -37,6 +37,8 @@ function linkRow(clientId) {
 function overviewEmbed(client, prefix) {
   const counts = {};
   for (const command of client.commands.values()) {
+    // Los comandos de administracion no se anuncian.
+    if (command.hidden) continue;
     counts[command.category] = (counts[command.category] || 0) + 1;
   }
 
@@ -59,14 +61,14 @@ function overviewEmbed(client, prefix) {
         `Usa el menú de abajo para ver los comandos de cada categoría, o \`${prefix}help <comando>\` para el detalle de uno.`,
       ].join('\n')
     )
-    .setFooter({ text: `${client.commands.size} comandos disponibles` })
+    .setFooter({ text: `${client.commands.filter((c) => !c.hidden).size} comandos disponibles` })
     .setTimestamp();
 }
 
 /** Embed con los comandos de una categoría. */
 function categoryEmbed(client, categoryId, prefix) {
   const category = COMMAND_CATEGORIES[categoryId];
-  const commands = client.commands.filter((c) => c.category === categoryId);
+  const commands = client.commands.filter((c) => c.category === categoryId && !c.hidden);
 
   const description =
     commands.size === 0
@@ -151,7 +153,7 @@ module.exports = {
   async autocomplete(interaction, client) {
     const focused = interaction.options.getFocused().toLowerCase();
     const matches = client.commands
-      .filter((c) => c.name.includes(focused))
+      .filter((c) => c.name.includes(focused) && !c.hidden)
       .map((c) => ({ name: `${c.name} — ${(c.description || '').slice(0, 60)}`, value: c.name }))
       .slice(0, 25);
     await interaction.respond(matches).catch(() => {});

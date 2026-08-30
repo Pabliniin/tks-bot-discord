@@ -26,9 +26,28 @@ async function runCommand(ctx) {
   }
 
   // ── Comandos reservados a los dueños del bot ───────────────────
-  if (command.ownerOnly && !client.owners.includes(user.id)) {
-    await ctx.errorReply('Este comando está reservado para los desarrolladores del bot.');
-    return false;
+  if (command.ownerOnly) {
+    const { isOwner, ownerIds } = require('../utils/botStaff');
+
+    if (ownerIds().length === 0) {
+      await ctx.errorReply(
+        'No hay ningún dueño configurado. Pon tu ID de usuario en `BOT_OWNERS` y reinicia el bot.'
+      );
+      return false;
+    }
+    if (!isOwner(user.id)) {
+      await ctx.errorReply('Este comando está reservado para los dueños del bot.');
+      return false;
+    }
+  }
+
+  // ── Comandos del personal del bot (dueños incluidos) ───────────
+  if (command.staffOnly) {
+    const { isStaff } = require('../utils/botStaff');
+    if (!(await isStaff(user.id))) {
+      await ctx.errorReply('Este comando está reservado para el personal de TK$ Bot.');
+      return false;
+    }
   }
 
   // ── Desactivado desde el panel ─────────────────────────────────

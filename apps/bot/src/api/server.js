@@ -89,7 +89,7 @@ function startApi(client) {
   // ── Lista de comandos, para la web pública ───────────────────
   app.get('/api/commands', (req, res) => {
     res.json(
-      client.commands.map((command) => ({
+      client.commands.filter((command) => !command.hidden).map((command) => ({
         name: command.name,
         category: command.category,
         description: command.description || '',

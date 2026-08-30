@@ -278,20 +278,86 @@ Los tipos disponibles son `toggle`, `text`, `textarea`, `number`, `select`,
 
 ---
 
-## Activar Premium en un servidor
+## Administrar el bot: premium y personal
 
-No hay pasarela de pago conectada. Para activar Premium manualmente:
+Hay dos comandos de administración. **No aparecen en `/help` ni en la web
+pública**: solo los ve quien tiene permiso.
+
+### Quién puede qué
+
+| Nivel | Quién es | Puede |
+|---|---|---|
+| **Dueño** | Los IDs de `BOT_OWNERS` en el `.env` | Todo, incluido nombrar personal |
+| **Personal** | A quien nombres con `/staff add` | Repartir premium |
+| Resto | Todos los demás | Nada de esto |
+
+Un miembro del personal **no puede** modificar la lista de personal ni
+destituirte. Así, aunque su cuenta se vea comprometida, no puede darse más
+permisos. Los dueños solo se cambian editando `BOT_OWNERS` y reiniciando el bot.
+
+### `/premium` — repartir suscripciones
+
+Para ti y para el personal que nombres.
+
+```bash
+/premium add servidor:123456789012345678 nivel:2 duracion:30d
+/premium add servidor:123456789012345678 nivel:1          # sin caducidad
+/premium remove servidor:123456789012345678
+/premium info servidor:123456789012345678                 # vacío = servidor actual
+/premium list                                             # todos los que tienen premium
+```
+
+La duración admite `30d`, `6meses`, `1año`, `2semanas`… Si la dejas vacía, el
+premium no caduca. El cambio se aplica al instante, sin reiniciar nada.
+
+Todas las respuestas son **efímeras**: solo las ves tú, aunque lo uses en un
+canal público.
+
+### `/staff` — decidir quién reparte premium
+
+Solo para los dueños.
+
+```bash
+/staff add @Amigo       # ahora puede usar /premium
+/staff remove @Amigo    # se lo retiras
+/staff list             # ver dueños y personal
+```
+
+Quien añadas recibe un mensaje privado avisándole.
+
+### Poner tu ID en `BOT_OWNERS`
+
+Sin esto no podrás usar `/staff`. En Discord, activa el **Modo desarrollador**
+(Ajustes de usuario → Avanzado), haz clic derecho sobre tu nombre y copia tu ID.
+Después ponlo en el `.env`:
+
+```bash
+BOT_OWNERS=TU_ID_DE_USUARIO
+```
+
+Si sois varios dueños, sepáralos por comas:
+
+```bash
+BOT_OWNERS=111111111111111111,222222222222222222
+```
+
+> En Easypanel esto se cambia en **Entorno** del servicio `bot`, y luego hay que
+> pulsar **Implementar**.
+
+### Cambiarlo a mano en la base de datos
+
+Si prefieres no usar los comandos:
 
 ```js
-// En mongosh, o desde MongoDB Compass
 db.guilds.updateOne(
-  { guildId: "ID_DE_TU_SERVIDOR" },
+  { guildId: "ID_DEL_SERVIDOR" },
   { $set: { "premium.tier": 2, "premium.until": new Date("2027-01-01") } }
 )
 ```
 
-`tier` puede ser `1` o `2`. Si quieres cobrar de verdad, integra Stripe o PayPal
-en `apps/web/src/app/premium/page.js`.
+No hay pasarela de pago conectada. Si quieres cobrar de verdad, integra Stripe o
+PayPal en `apps/web/src/app/premium/page.js` y haz que al cobrar escriba esos
+mismos campos.
 
 ---
 
