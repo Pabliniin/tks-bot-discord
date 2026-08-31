@@ -3,6 +3,7 @@ import { getGuildSettings, premiumTier, premiumLimits } from '@tkbot/shared';
 
 import { requireGuildAccess, sanitizePayload } from '@/lib/guards';
 import { validateSettings } from '@/lib/validateSettings';
+import { mergeLogEvents } from '@/lib/mergeLogEvents';
 import { checkRateLimit, rateLimitHeaders } from '@/lib/rateLimit';
 import { getGuildData, invalidateGuild } from '@/lib/botApi';
 
@@ -101,9 +102,13 @@ export async function PATCH(request, { params }) {
     const settings = await getGuildSettings(guildId);
     const tier = premiumTier(settings);
 
+    // `logs.events` es un Map: el panel solo envía los eventos tocados en
+    // este guardado, y asignarlos tal cual reemplazaría el Map entero.
+    const changesConEventos = mergeLogEvents(changes, settings);
+
     // Los límites del plan se comprueban aquí, no solo en el navegador:
     // de lo contrario bastaría con llamar a la API para saltárselos.
-    const validation = validateSettings(changes, settings, tier);
+    const validation = validateSettings(changesConEventos, settings, tier);
     if (!validation.ok) {
       return NextResponse.json(
         { error: 'La configuración no es válida.', details: validation.errors },
@@ -111,7 +116,7 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    for (const [key, value] of Object.entries(changes)) {
+    for (const [key, value] of Object.entries(changesConEventos)) {
       settings.set(key, value);
     }
 
