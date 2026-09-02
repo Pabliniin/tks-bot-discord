@@ -56,7 +56,7 @@ const HIGHLIGHTS = [
   {
     Icon: Sparkles,
     title: 'Todo personalizable',
-    text: '15 módulos configurables desde el panel, sin tocar una sola línea de código.',
+    text: '18 módulos configurables desde el panel, sin tocar una sola línea de código.',
   },
   {
     Icon: Zap,

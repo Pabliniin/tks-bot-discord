@@ -2,6 +2,10 @@
  * Cliente de la API de Discord para el flujo OAuth2 del panel.
  */
 
+import constants from '@tkbot/shared/src/constants.json' with { type: 'json' };
+
+const { REQUIRED_PERMISSIONS } = constants;
+
 const API = 'https://discord.com/api/v10';
 
 /** Permiso «Gestionar servidor», necesario para configurar el bot. */
@@ -25,7 +29,7 @@ export function buildAuthorizeUrl(state) {
 export function buildInviteUrl(guildId = null) {
   const params = new URLSearchParams({
     client_id: process.env.DISCORD_CLIENT_ID || '',
-    permissions: process.env.BOT_PERMISSIONS || '1633094616310',
+    permissions: process.env.BOT_PERMISSIONS || REQUIRED_PERMISSIONS,
     scope: 'bot applications.commands',
   });
   if (guildId) {

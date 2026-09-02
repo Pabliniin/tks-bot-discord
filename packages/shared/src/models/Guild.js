@@ -213,6 +213,21 @@ const guildSchema = new Schema(
         accentColor: { type: String, default: '#5865F2' },
         textColor: { type: String, default: '#FFFFFF' },
       },
+
+      /**
+       * Clasificación pública en la web (`/clasificacion/<servidor>`).
+       *
+       * Va apagada a propósito: publicar quién habla más en un servidor
+       * privado sin que su dueño lo haya pedido sería filtrar datos suyos.
+       * Quien la enciende sabe lo que está publicando.
+       */
+      publicLeaderboard: {
+        enabled: { type: Boolean, default: false },
+        /** Deja ver la clasificación a cualquiera con el enlace, sin buscador. */
+        unlisted: { type: Boolean, default: true },
+        /** Texto propio bajo el título de la página. */
+        description: { type: String, default: '', maxlength: 300 },
+      },
     },
 
     // ── Auto-Roles ───────────────────────────────────────────────
@@ -452,6 +467,88 @@ const guildSchema = new Schema(
               style: { type: Number, enum: [1, 2], default: 1 },
             },
           ],
+        },
+      ],
+    },
+
+    // ── Apelaciones ──────────────────────────────────────────────
+    /**
+     * Permite que un sancionado explique su versión desde una página web.
+     *
+     * Sin esto, alguien baneado no tiene forma de contactar: no puede escribir
+     * en el servidor y los privados del equipo suelen estar cerrados.
+     */
+    appeals: {
+      enabled: { type: Boolean, default: false },
+      /** Canal donde avisar de cada apelación nueva. */
+      channelId: { type: String, default: null },
+      /** Qué sanciones se pueden apelar. */
+      types: { type: [String], default: ['ban', 'kick', 'timeout', 'mute'] },
+      /** Texto propio que se enseña en el formulario público. */
+      instructions: { type: String, default: '', maxlength: 1000 },
+      /** Días que hay para apelar desde la sanción (0 = sin límite). */
+      deadlineDays: { type: Number, default: 30, min: 0, max: 365 },
+    },
+
+    // ── Música ───────────────────────────────────────────────────
+    /**
+     * El audio lo procesa Lavalink, un servicio aparte. Estos ajustes solo
+     * dicen quién puede mandar y con qué límites.
+     */
+    music: {
+      enabled: { type: Boolean, default: true },
+      /** Quien tenga este rol manda sobre la cola de los demás. */
+      djRoleId: { type: String, default: null },
+      /** Solo el DJ puede usar los comandos que afectan a la reproducción. */
+      djOnly: { type: Boolean, default: false },
+
+      defaultVolume: { type: Number, default: 100, min: 1, max: 200 },
+      /** Tope que nadie puede superar: a 200 el audio satura y molesta. */
+      maxVolume: { type: Number, default: 150, min: 1, max: 200 },
+
+      /** Canales de voz donde se permite. Vacío = todos. */
+      allowedVoiceChannels: { type: [String], default: [] },
+      /** Canales de texto desde los que se puede pedir música. Vacío = todos. */
+      commandChannels: { type: [String], default: [] },
+
+      /** Anunciar cada canción que empieza a sonar. */
+      announce: { type: Boolean, default: true },
+
+      /**
+       * Dónde buscar cuando se escribe texto en vez de un enlace.
+       * `ytmsearch` (YouTube Music) suele dar mejores resultados para canciones
+       * porque no devuelve vídeos de reacciones ni directos de diez horas.
+       */
+      defaultSource: {
+        type: String,
+        enum: ['ytsearch', 'ytmsearch', 'scsearch', 'dzsearch'],
+        default: 'ytmsearch',
+      },
+
+      /** Porcentaje de oyentes que hace falta para saltar por votación. */
+      voteSkipPercent: { type: Number, default: 50, min: 1, max: 100 },
+    },
+
+    // ── Contadores de servidor ───────────────────────────────────
+    /**
+     * Canales de voz cuyo nombre se actualiza solo («👥 Miembros: 1.234»).
+     *
+     * Discord solo deja renombrar un canal dos veces cada diez minutos, así
+     * que se refrescan cada cuarto de hora y nunca a demanda.
+     */
+    counters: {
+      enabled: { type: Boolean, default: false },
+      channels: [
+        {
+          _id: false,
+          channelId: { type: String, required: true },
+          type: {
+            type: String,
+            enum: ['miembros', 'humanos', 'bots', 'enLinea', 'canales', 'roles', 'boosts'],
+            required: true,
+          },
+          /** Texto del nombre. `{valor}` se sustituye por la cifra. */
+          template: { type: String, default: '', maxlength: 100 },
         },
       ],
     },

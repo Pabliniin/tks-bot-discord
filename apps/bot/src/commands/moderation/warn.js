@@ -59,7 +59,7 @@ module.exports = {
       active: true,
     });
 
-    const notified = await notifyUser(target, ctx.guild, 'warn', reason);
+    const notified = await notifyUser(target, ctx.guild, 'warn', reason, null, ctx.settings);
 
     await ctx.successReply(
       [

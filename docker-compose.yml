@@ -27,6 +27,33 @@ services:
       retries: 5
       start_period: 30s
 
+  # ── Servidor de música ─────────────────────────────────────
+  #
+  # Lavalink procesa el audio para que no lo haga el bot. Es opcional: sin
+  # este servicio todo lo demás funciona, y los comandos de música lo dicen.
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4
+    restart: unless-stopped
+    environment:
+      # Lavalink lee su configuración de variables con este prefijo, así que
+      # no hace falta montar ningún application.yml.
+      _JAVA_OPTIONS: -Xmx${LAVALINK_MEMORY:-512}m
+      SERVER_PORT: 2333
+      SERVER_ADDRESS: 0.0.0.0
+      LAVALINK_SERVER_PASSWORD: ${LAVALINK_PASSWORD:-cambia_esta_contrasena}
+      LAVALINK_SERVER_SOURCES_YOUTUBE: 'true'
+      LAVALINK_SERVER_SOURCES_SOUNDCLOUD: 'true'
+      LAVALINK_SERVER_SOURCES_BANDCAMP: 'true'
+      LAVALINK_SERVER_SOURCES_TWITCH: 'true'
+      LAVALINK_SERVER_SOURCES_HTTP: 'true'
+    # Sin puertos publicados: solo lo alcanza el bot por la red interna.
+    healthcheck:
+      test: ['CMD-SHELL', 'nc -z localhost 2333 || exit 1']
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
   # ── Bot de Discord ─────────────────────────────────────────
   bot:
     build:
@@ -49,6 +76,10 @@ services:
       BOT_API_PORT: 3001
       BOT_API_SECRET: ${BOT_API_SECRET}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+      # `lavalink` es el nombre del servicio: Docker lo resuelve por DNS.
+      LAVALINK_HOST: lavalink:2333
+      LAVALINK_PASSWORD: ${LAVALINK_PASSWORD:-cambia_esta_contrasena}
+      LAVALINK_SECURE: 'false'
     # Tampoco se publica el 3001: la API nunca debe salir a internet.
 
   # ── Panel web ──────────────────────────────────────────────

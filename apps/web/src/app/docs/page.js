@@ -22,7 +22,7 @@ const STEPS = [
   },
   {
     title: 'Abre el panel',
-    body: 'Entra en el panel de control, inicia sesión con Discord y elige tu servidor. Verás los 15 módulos en la barra lateral.',
+    body: 'Entra en el panel de control, inicia sesión con Discord y elige tu servidor. Verás los 18 módulos en la barra lateral, más las herramientas de gestión.',
   },
   {
     title: 'Activa lo que necesites',
@@ -92,7 +92,56 @@ const MODULE_DOCS = {
     anchor: 'tickets',
     body: 'Crea un panel con un botón. Al pulsarlo se abre un canal privado entre el usuario y tu equipo de soporte. Puedes añadir hasta 5 preguntas que se muestran como formulario al abrir el ticket.',
   },
+  appeals: {
+    anchor: 'apelaciones',
+    body: 'Quien recibe una sanción puede explicar su versión desde una página web, y el enlace le llega en el mismo aviso privado. Sin esto, un baneado no tiene forma de contactar contigo. Tú las revisas desde el panel y, si aceptas un baneo, puedes levantarlo desde ahí mismo.',
+  },
+  counters: {
+    anchor: 'contadores',
+    body: 'Canales de voz cuyo nombre se actualiza solo con las cifras del servidor: «Miembros: 1.234». Se ven en la lista sin entrar en ninguno. Crea un canal de voz vacío, quítale el permiso de Conectar a todos y elígelo aquí.',
+  },
+  music: {
+    anchor: 'musica',
+    body: 'Reproduce desde YouTube, YouTube Music, SoundCloud y Deezer, con cola, repetición, filtros de audio y votación para saltar. Quien pide una canción siempre puede saltarla, y si estás solo escuchando no se vota. Puedes poner un rol de DJ y limitar en qué canales funciona.',
+  },
 };
+
+/**
+ * Funciones que no son módulos de configuración, sino herramientas de gestión.
+ * Son las que diferencian el bot de la competencia, así que se explican aparte.
+ */
+const HERRAMIENTAS = [
+  {
+    icono: '📊',
+    titulo: 'Estadísticas',
+    body: 'Gráficas de crecimiento, entradas y salidas, retención, mensajes por día y canales más activos, comparadas con el periodo anterior. Los datos se recogen desde que el bot entra en tu servidor.',
+  },
+  {
+    icono: '🏆',
+    titulo: 'Clasificación pública',
+    body: 'Una página web con el ranking de tu servidor que cualquiera puede ver sin iniciar sesión. Tus miembros entran a mirar su puesto. Va apagada por defecto: se activa en el módulo de niveles.',
+  },
+  {
+    icono: '🧪',
+    titulo: 'Simulador de AutoMod',
+    body: 'Escribe un mensaje y verás qué haría el bot, sin enviar nada a Discord. Prueba la configuración que tengas en pantalla aunque no la hayas guardado, para no activar filtros a ciegas.',
+  },
+  {
+    icono: '🕐',
+    titulo: 'Historial con deshacer',
+    body: 'Quién cambió qué y cuándo, con los valores anteriores. Si alguien de tu equipo rompe algo, se deshace con un clic. Se conservan 180 días.',
+  },
+  {
+    icono: '🛠️',
+    titulo: 'Copias y plantillas',
+    body: 'Exporta tu configuración a un archivo y restáurala aquí o en otro servidor. Cuatro plantillas (Comunidad, Gaming, Soporte y Blindado) que lo dejan todo montado de un clic.',
+  },
+  {
+    icono: '🔍',
+    titulo: 'Moderación desde la web',
+    body: 'Busca a cualquier miembro y consulta su historial completo de sanciones sin abrir Discord. También puedes retirar advertencias.',
+  },
+];
 
 export default function DocsPage() {
   const botName = process.env.NEXT_PUBLIC_BOT_NAME || 'TK$ Bot';
@@ -193,6 +242,27 @@ export default function DocsPage() {
             </div>
           </section>
 
+          {/* Herramientas de gestión */}
+          <section id="herramientas">
+            <h2 className="text-2xl font-bold text-white">Herramientas del panel</h2>
+            <p className="mt-2 text-sm text-ink-300">
+              Además de configurar el bot, el panel trae herramientas de gestión que no
+              encontrarás en otros bots.
+            </p>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              {HERRAMIENTAS.map((herramienta) => (
+                <article key={herramienta.titulo} className="card p-5">
+                  <h3 className="flex items-center gap-2.5 text-base font-bold text-white">
+                    <span className="text-xl">{herramienta.icono}</span>
+                    {herramienta.titulo}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-ink-300">{herramienta.body}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
           {/* Preguntas frecuentes */}
           <section id="faq">
             <h2 className="text-2xl font-bold text-white">Preguntas frecuentes</h2>
@@ -217,7 +287,7 @@ export default function DocsPage() {
                 },
                 {
                   q: '¿Los comandos funcionan con barra y con prefijo?',
-                  a: 'Sí, los 41 comandos funcionan de las dos formas. Ejecuta «npm run deploy» una vez para registrar los comandos de barra en Discord.',
+                  a: 'Sí, los 58 comandos funcionan de las dos formas. Ejecuta «npm run deploy» una vez para registrar los comandos de barra en Discord.',
                 },
               ].map((item) => (
                 <details key={item.q} className="card group p-5">

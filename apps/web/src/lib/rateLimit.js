@@ -36,6 +36,15 @@ export const REGLAS = {
   publicar: { max: 10, ventanaMs: 60_000 },
   /** Inicio de sesión: frena los intentos automatizados. */
   auth: { max: 15, ventanaMs: 300_000 },
+  /** Simulador de AutoMod: se teclea seguido, y no escribe nada. */
+  simular: { max: 60, ventanaMs: 60_000 },
+  /**
+   * Enviar una apelación. Es público (lo usa gente baneada, sin sesión), así
+   * que se limita por IP y con mano dura: es el punto más expuesto del panel.
+   */
+  apelar: { max: 3, ventanaMs: 3_600_000 },
+  /** Consultar una clasificación pública: cacheada, pero no ilimitada. */
+  publico: { max: 120, ventanaMs: 60_000 },
 };
 
 /**
@@ -80,6 +89,22 @@ export function rateLimitHeaders(resultado, tipo = 'leer') {
     'X-RateLimit-Remaining': String(Math.max(0, resultado.restantes)),
     'X-RateLimit-Reset': String(resultado.resetEnSegundos),
   };
+}
+
+/**
+ * IP de quien llama, para limitar las rutas públicas (sin sesión que usar).
+ *
+ * Detrás del proxy inverso de Easypanel la IP real llega en `x-forwarded-for`,
+ * donde el primer valor es el cliente y el resto son los proxies.
+ *
+ * @param {Request} request
+ * @returns {string}
+ */
+export function clientIp(request) {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) return forwarded.split(',')[0].trim();
+
+  return request.headers.get('x-real-ip') || 'desconocida';
 }
 
 /** Vacía los contadores. Solo se usa en las pruebas. */

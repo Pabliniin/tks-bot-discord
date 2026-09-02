@@ -1,11 +1,15 @@
 import Link from 'next/link';
 import { Check, X, Crown } from 'lucide-react';
-import { PREMIUM_TIERS } from '@tkbot/shared';
+import { PREMIUM_TIERS, planesDeNivel } from '@tkbot/shared';
 
 import Navbar from '@/components/Navbar';
 import PremiumStatusCard from '@/components/PremiumStatusCard';
+import CheckoutButtons from '@/components/CheckoutButtons';
 import { getSession } from '@/lib/session';
 import { getUserPremium } from '@/lib/premiumData';
+import { planesALaVenta, pagosDisponibles } from '@/lib/stripe';
+import { resumirFacturacion } from '@/lib/subscriptions';
+import { User, connect } from '@tkbot/shared';
 import Footer from '@/components/Footer';
 
 // Lee la sesion del usuario, asi que no se puede prerenderizar.
@@ -56,6 +60,32 @@ export default async function PremiumPage() {
 
   const botName = process.env.NEXT_PUBLIC_BOT_NAME || 'TK$ Bot';
 
+  /*
+   * Los planes se leen del servidor porque los identificadores de precio de
+   * Stripe son variables de entorno. Si no hay pasarela configurada, la lista
+   * sale vacia y la pagina explica como se reparte el premium a mano.
+   */
+  const conPagos = pagosDisponibles();
+
+  const planes = conPagos
+    ? planesALaVenta().map((plan) => {
+        const detalle = planesDeNivel(plan.tier).find((p) => p.id === plan.id);
+        return { ...plan, precio: detalle?.precio || '', nombre: detalle?.nombre || '' };
+      })
+    : [];
+
+  // Estado de la suscripcion, para ofrecer "gestionar" en vez de "comprar".
+  let facturacion = null;
+  if (session && conPagos) {
+    try {
+      await connect();
+      const doc = await User.findOne({ userId: session.userId }).select('billing').lean();
+      facturacion = resumirFacturacion(doc?.billing);
+    } catch {
+      // Sin base de datos se ofrece comprar: es lo menos malo.
+    }
+  }
+
   return (
     <>
       <Navbar />
@@ -75,6 +105,15 @@ export default async function PremiumPage() {
           status={session ? userPremium : null}
           username={session?.username || ''}
         />
+
+        {conPagos && (
+          <CheckoutButtons
+            planes={planes}
+            sesionIniciada={Boolean(session)}
+            tieneSuscripcion={Boolean(facturacion?.activa)}
+            tier={userPremium?.tier || 0}
+          />
+        )}
 
         {/* Planes */}
         <div className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-3">
@@ -162,6 +201,12 @@ export default async function PremiumPage() {
             </table>
           </div>
 
+          {/*
+            Este aviso solo tiene sentido mientras no haya pasarela. Con Stripe
+            configurado, enseñarle al cliente cómo se reparte el premium a mano
+            sería raro, así que desaparece.
+          */}
+          {!conPagos && (
           <div className="mt-6 rounded-lg border border-ink-700 bg-ink-800/50 p-4 text-sm leading-relaxed text-ink-300">
             <p>
               <strong className="text-ink-100">Nota para el administrador:</strong> los precios son
@@ -187,11 +232,12 @@ export default async function PremiumPage() {
               </li>
             </ul>
             <p className="mt-3">
-              Cuando quieras cobrar de verdad, integra Stripe o PayPal aquí y haz que al completarse
-              el pago se ejecute lo mismo que hace{' '}
-              <code className="rounded bg-ink-900 px-1">/premiumuser add</code>.
+              Para cobrar de verdad, configura las claves de Stripe en el{' '}
+              <code className="rounded bg-ink-900 px-1">.env</code>. Las instrucciones están en{' '}
+              <code className="rounded bg-ink-900 px-1">PAGOS.md</code>.
             </p>
           </div>
+          )}
         </section>
       </main>
 

@@ -50,7 +50,7 @@ module.exports = {
     await ctx.defer();
 
     // El aviso se envía antes de expulsar, mientras aún compartimos servidor.
-    await notifyUser(target, ctx.guild, 'kick', reason).catch(() => {});
+    await notifyUser(target, ctx.guild, 'kick', reason, null, ctx.settings).catch(() => {});
 
     try {
       await member.kick(`${ctx.user.tag}: ${reason}`);

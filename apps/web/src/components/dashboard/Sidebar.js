@@ -3,13 +3,38 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowLeft, Menu, X, Settings, Crown } from 'lucide-react';
+import {
+  ArrowLeft,
+  Menu,
+  X,
+  Settings,
+  Crown,
+  ChartNoAxesColumn,
+  History,
+  Wrench,
+  Scale,
+  Shield,
+} from 'lucide-react';
 // JSON de constantes: sin mongoose y compatible con los componentes de cliente.
 // Se importa por defecto y se desestructura: webpack no admite imports con
 // nombre sobre las claves de un JSON.
 import constants from '@tkbot/shared/src/constants.json';
 
 const { MODULES, MODULE_GROUPS } = constants;
+
+/**
+ * Secciones de gestión, que no son módulos de configuración.
+ *
+ * Son las cuatro cosas que la competencia no tiene, así que conviene que se
+ * vean nada más entrar y no escondidas al final de la lista.
+ */
+const EXTRAS = [
+  { href: 'estadisticas', label: 'Estadísticas', Icon: ChartNoAxesColumn },
+  { href: 'moderacion', label: 'Moderación', Icon: Shield },
+  { href: 'apelaciones', label: 'Apelaciones', Icon: Scale },
+  { href: 'historial', label: 'Historial', Icon: History },
+  { href: 'herramientas', label: 'Herramientas', Icon: Wrench },
+];
 
 /**
  * Barra lateral del panel con los 15 módulos agrupados.
@@ -78,7 +103,7 @@ export default function Sidebar({ guildId, guildName, guildIcon, premiumTier }) 
         <Link
           href={`${base}/general`}
           onClick={() => setOpen(false)}
-          className={`mb-4 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+          className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
             isActive(`${base}/general`)
               ? 'bg-brand-500 text-white'
               : 'text-ink-200 hover:bg-ink-700 hover:text-white'
@@ -87,6 +112,36 @@ export default function Sidebar({ guildId, guildName, guildIcon, premiumTier }) 
           <Settings size={16} className="w-5" />
           Ajustes generales
         </Link>
+
+        {/*
+          Secciones que no son módulos de configuración, sino herramientas de
+          gestión. Van arriba, separadas, porque se usan a diario y buscarlas
+          entre quince módulos sería absurdo.
+        */}
+        <div className="mb-4 mt-4">
+          <p className="mb-1.5 px-3 text-[11px] font-bold uppercase tracking-wider text-ink-400">
+            Gestión
+          </p>
+
+          {EXTRAS.map(({ href, label, Icon }) => {
+            const url = `${base}/${href}`;
+            const active = isActive(url);
+
+            return (
+              <Link
+                key={href}
+                href={url}
+                onClick={() => setOpen(false)}
+                className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  active ? 'bg-brand-500 text-white' : 'text-ink-200 hover:bg-ink-700 hover:text-white'
+                }`}
+              >
+                <Icon size={16} className="w-5" />
+                {label}
+              </Link>
+            );
+          })}
+        </div>
 
         {grouped.map((group) => (
           <div key={group.id} className="mb-4">

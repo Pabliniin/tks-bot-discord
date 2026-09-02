@@ -17,6 +17,8 @@ import {
 import EmbedBuilder from './EmbedBuilder';
 import ListEditor from './ListEditor';
 import LogEventsEditor from './LogEventsEditor';
+import AutomodSimulator from './AutomodSimulator';
+import CopyLink from './CopyLink';
 import { useGuildData } from './GuildDataContext';
 import { get as getPath } from '@/lib/objectPath';
 
@@ -84,7 +86,7 @@ function VariablesHelp({ context }) {
  * @param {object} props.settings Configuración completa, para evaluar `showIf`.
  */
 export default function Field({ field, value, onChange, settings, disabled = false }) {
-  const { channels, roles, commands } = useGuildData();
+  const { channels, roles, commands, guildId } = useGuildData();
 
   // `showIf` oculta el campo mientras la opción de la que depende esté apagada.
   if (field.showIf && !getPath(settings, field.showIf)) return null;
@@ -96,7 +98,14 @@ export default function Field({ field, value, onChange, settings, disabled = fal
   const roleItems = roles.map((r) => ({ value: r.id, label: r.name, color: r.color }));
 
   /** Los campos que ya traen su propia etiqueta no repiten el `<label>`. */
-  const selfLabeled = field.type === 'toggle' || field.type === 'embed' || field.type === 'list';
+  const selfLabeled = [
+    'toggle',
+    'embed',
+    'list',
+    'automodSimulator',
+    'leaderboardLink',
+    'appealLink',
+  ].includes(field.type);
 
   const control = () => {
     switch (field.type) {
@@ -232,6 +241,26 @@ export default function Field({ field, value, onChange, settings, disabled = fal
 
       case 'logEvents':
         return <LogEventsEditor value={value} onChange={onChange} />;
+
+      // El simulador no edita nada: solo lee la configuración de la pantalla.
+      case 'automodSimulator':
+        return <AutomodSimulator settings={settings} />;
+
+      case 'leaderboardLink':
+        return (
+          <CopyLink
+            ruta={`/clasificacion/${guildId}`}
+            descripcion="Comparte este enlace con tu servidor. No hace falta iniciar sesión para verlo."
+          />
+        );
+
+      case 'appealLink':
+        return (
+          <CopyLink
+            ruta={`/apelar/${guildId}`}
+            descripcion="El bot ya incluye este enlace en el aviso privado que recibe cada sancionado."
+          />
+        );
 
       case 'list':
         return <ListEditor field={field} value={value} onChange={onChange} settings={settings} />;

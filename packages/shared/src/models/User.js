@@ -26,12 +26,45 @@ const userSchema = new Schema(
       textColor: { type: String, default: '#FFFFFF' },
     },
 
-    /** Suscripción premium personal (permite activar servidores). */
+    /**
+     * Suscripción premium personal (permite activar servidores).
+     *
+     * Es la única fuente de verdad de lo que tiene contratado alguien, venga
+     * de un pago con tarjeta o de un `/premium add` a mano. Así el comando y
+     * la pasarela no compiten entre sí: los dos escriben aquí.
+     */
     premium: {
       tier: { type: Number, enum: [0, 1, 2], default: 0 },
       until: { type: Date, default: null },
       /** Servidores donde el usuario ha aplicado su premium. */
       guilds: { type: [String], default: [] },
+    },
+
+    /**
+     * Datos de la pasarela de pago.
+     *
+     * Van aparte de `premium` a propósito: `premium` dice QUÉ tiene, y esto
+     * dice CÓMO lo paga. Alguien con premium regalado no tiene nada aquí, y
+     * eso no debe romper nada.
+     */
+    billing: {
+      /** Cliente en Stripe. Hace falta para abrir el portal de facturación. */
+      stripeCustomerId: { type: String, default: null, index: true, sparse: true },
+      subscriptionId: { type: String, default: null },
+      /** `active`, `past_due`, `canceled`, `incomplete`, `trialing`… */
+      status: { type: String, default: null },
+      /** Precio contratado, para saber a qué plan corresponde. */
+      priceId: { type: String, default: null },
+      /** Fin del periodo pagado. Es hasta cuándo llega el acceso. */
+      currentPeriodEnd: { type: Date, default: null },
+      /** Ha pedido la baja: sigue activo hasta que acabe el periodo. */
+      cancelAtPeriodEnd: { type: Boolean, default: false },
+      /**
+       * Marca del último evento aplicado, para descartar los que lleguen
+       * tarde: los webhooks no llegan en orden y uno antiguo podría revertir
+       * un cambio más nuevo.
+       */
+      lastEventAt: { type: Date, default: null },
     },
 
     /**

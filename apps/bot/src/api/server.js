@@ -347,6 +347,175 @@ function startApi(client) {
     }
   });
 
+  /*
+   * ── Resolver usuarios ────────────────────────────────────────
+   *
+   * La base de datos solo guarda identificadores. Para enseñar nombres y
+   * fotos en la clasificación pública hace falta preguntárselos a Discord,
+   * y solo el bot tiene sesión para hacerlo.
+   */
+  app.post('/api/guilds/:guildId/members/resolve', async (req, res) => {
+    const guild = client.guilds.cache.get(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'El bot no está en ese servidor.' });
+
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.slice(0, 100) : [];
+    if (ids.length === 0) return res.json({ users: {} });
+
+    const users = {};
+
+    await Promise.all(
+      ids.map(async (id) => {
+        if (!/^\d{16,20}$/.test(String(id))) return;
+
+        // Primero el miembro (trae apodo del servidor), y si ya no está, el
+        // usuario global: alguien puede haberse ido y seguir en el ranking.
+        const member =
+          guild.members.cache.get(id) || (await guild.members.fetch(id).catch(() => null));
+
+        if (member) {
+          users[id] = {
+            id,
+            name: member.displayName,
+            tag: member.user.tag,
+            avatar: member.displayAvatarURL({ size: 128, extension: 'png' }),
+            inGuild: true,
+          };
+          return;
+        }
+
+        const user = await client.users.fetch(id).catch(() => null);
+        if (user) {
+          users[id] = {
+            id,
+            name: user.globalName || user.username,
+            tag: user.tag,
+            avatar: user.displayAvatarURL({ size: 128, extension: 'png' }),
+            inGuild: false,
+          };
+        }
+      })
+    );
+
+    res.json({ users });
+  });
+
+  // ── Nombre e icono de un servidor, sin exigir sesión ─────────
+  // Lo usa la página pública de clasificación, que no tiene token de nadie.
+  app.get('/api/guilds/:guildId/public', (req, res) => {
+    const guild = client.guilds.cache.get(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'El bot no está en ese servidor.' });
+
+    res.json({
+      id: guild.id,
+      name: guild.name,
+      icon: guild.iconURL({ size: 256 }),
+      memberCount: guild.memberCount,
+    });
+  });
+
+  /*
+   * ── Levantar una sanción desde el panel ──────────────────────
+   *
+   * Lo usa la revisión de apelaciones: al aceptar una, se puede desbanear sin
+   * tener que abrir Discord y buscar al usuario a mano.
+   */
+  app.post('/api/guilds/:guildId/unban', async (req, res) => {
+    const guild = client.guilds.cache.get(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'El bot no está en ese servidor.' });
+
+    const userId = String(req.body?.userId || '');
+    if (!/^\d{16,20}$/.test(userId)) {
+      return res.status(400).json({ error: 'Identificador de usuario no válido.' });
+    }
+
+    const razon = String(req.body?.reason || 'Apelación aceptada desde el panel').slice(0, 400);
+
+    try {
+      await guild.bans.remove(userId, razon);
+      return res.json({ ok: true });
+    } catch (err) {
+      // 10026 = el usuario no estaba baneado. No es un fallo que deba alarmar.
+      if (err.code === 10026) {
+        return res.json({ ok: true, yaNoEstaba: true });
+      }
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ── Avisar al usuario del resultado de su apelación ──────────
+  app.post('/api/guilds/:guildId/notify', async (req, res) => {
+    const guild = client.guilds.cache.get(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'El bot no está en ese servidor.' });
+
+    const userId = String(req.body?.userId || '');
+    if (!/^\d{16,20}$/.test(userId)) {
+      return res.status(400).json({ error: 'Identificador de usuario no válido.' });
+    }
+
+    try {
+      const user = await client.users.fetch(userId);
+      await user.send({
+        embeds: [
+          {
+            title: String(req.body?.title || 'Aviso').slice(0, 256),
+            description: String(req.body?.description || '').slice(0, 4000),
+            color: Number(req.body?.color) || 5793266,
+            footer: { text: guild.name },
+            timestamp: new Date().toISOString(),
+          },
+        ],
+      });
+      return res.json({ ok: true });
+    } catch {
+      // Tener los privados cerrados es lo normal: no es un error del panel.
+      return res.json({ ok: false, motivo: 'El usuario no acepta mensajes privados.' });
+    }
+  });
+
+  /*
+   * ── Publicar un aviso en un canal ────────────────────────────
+   *
+   * Genérico a propósito: lo usan las apelaciones para avisar al equipo, y
+   * sirve para cualquier notificación que el panel necesite mandar a Discord.
+   * El embed se construye aquí, campo a campo, en vez de reenviar lo que
+   * llegue: así el panel no puede provocar un embed arbitrario.
+   */
+  app.post('/api/guilds/:guildId/embeds/announce', async (req, res) => {
+    const guild = client.guilds.cache.get(req.params.guildId);
+    if (!guild) return res.status(404).json({ error: 'El bot no está en ese servidor.' });
+
+    const channel = guild.channels.cache.get(String(req.body?.channelId || ''));
+    if (!channel?.isTextBased()) {
+      return res.status(400).json({ error: 'Ese canal no existe o no admite mensajes.' });
+    }
+
+    const entrada = req.body?.embed || {};
+
+    const embed = {
+      title: String(entrada.title || '').slice(0, 256) || undefined,
+      description: String(entrada.description || '').slice(0, 4000) || undefined,
+      color: Number.isFinite(Number(entrada.color)) ? Number(entrada.color) : 5793266,
+      timestamp: new Date().toISOString(),
+      fields: Array.isArray(entrada.fields)
+        ? entrada.fields.slice(0, 25).map((f) => ({
+            name: String(f?.name || '​').slice(0, 256),
+            value: String(f?.value || '​').slice(0, 1024),
+            inline: Boolean(f?.inline),
+          }))
+        : undefined,
+      footer: entrada.footer?.text
+        ? { text: String(entrada.footer.text).slice(0, 2048) }
+        : undefined,
+    };
+
+    try {
+      const enviado = await channel.send({ embeds: [embed] });
+      return res.json({ ok: true, messageId: enviado.id });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
   // ── Errores no controlados ───────────────────────────────────
   app.use((err, req, res, next) => {
     logger.error('Error en la API interna:', err.message);

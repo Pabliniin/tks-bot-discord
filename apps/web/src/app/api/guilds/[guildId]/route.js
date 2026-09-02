@@ -2,10 +2,9 @@ import { NextResponse } from 'next/server';
 import { getGuildSettings, premiumTier, premiumLimits } from '@tkbot/shared';
 
 import { requireGuildAccess, sanitizePayload } from '@/lib/guards';
-import { validateSettings } from '@/lib/validateSettings';
-import { mergeLogEvents } from '@/lib/mergeLogEvents';
+import { saveGuildSettings } from '@/lib/saveSettings';
 import { checkRateLimit, rateLimitHeaders } from '@/lib/rateLimit';
-import { getGuildData, invalidateGuild } from '@/lib/botApi';
+import { getGuildData } from '@/lib/botApi';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +15,7 @@ const MAX_BODY = 512 * 1024;
  * Configuración de un servidor.
  *
  *   GET   → devuelve la configuración guardada más los datos en vivo del bot.
- *   PATCH → valida, guarda y refresca la caché del bot.
+ *   PATCH → valida, guarda, anota en el historial y refresca la caché del bot.
  */
 
 /** Respuesta cuando se supera el límite de peticiones. */
@@ -94,53 +93,28 @@ export async function PATCH(request, { params }) {
 
   // Solo se aceptan las claves que el panel puede editar.
   const changes = sanitizePayload(body);
-  if (Object.keys(changes).length === 0) {
-    return NextResponse.json({ error: 'No hay cambios que guardar.' }, { status: 400 });
-  }
 
   try {
-    const settings = await getGuildSettings(guildId);
-    const tier = premiumTier(settings);
+    const resultado = await saveGuildSettings({
+      guildId,
+      changes,
+      actor: { userId: access.session.userId, tag: access.session.username },
+    });
 
-    // `logs.events` es un Map: el panel solo envía los eventos tocados en
-    // este guardado, y asignarlos tal cual reemplazaría el Map entero.
-    const changesConEventos = mergeLogEvents(changes, settings);
-
-    // Los límites del plan se comprueban aquí, no solo en el navegador:
-    // de lo contrario bastaría con llamar a la API para saltárselos.
-    const validation = validateSettings(changesConEventos, settings, tier);
-    if (!validation.ok) {
+    if (!resultado.ok) {
       return NextResponse.json(
-        { error: 'La configuración no es válida.', details: validation.errors },
-        { status: 400, headers: rateLimitHeaders(limite, 'guardar') }
+        { error: resultado.error, details: resultado.details },
+        { status: resultado.status, headers: rateLimitHeaders(limite, 'guardar') }
       );
     }
-
-    for (const [key, value] of Object.entries(changesConEventos)) {
-      settings.set(key, value);
-    }
-
-    // `validateSync` aplica las reglas del esquema (rangos, enumerados…).
-    const validationError = settings.validateSync();
-    if (validationError) {
-      const details = Object.values(validationError.errors || {})
-        .map((e) => e.message)
-        .slice(0, 5);
-      return NextResponse.json({ error: 'Hay valores no válidos.', details }, { status: 400 });
-    }
-
-    await settings.save();
-
-    // El bot cachea la configuración 60 s: se le avisa para que la recargue ya.
-    const notificado = await invalidateGuild(guildId);
 
     return NextResponse.json(
       {
         ok: true,
-        settings: settings.toObject(),
-        premium: { tier: premiumTier(settings), limits: premiumLimits(settings) },
+        settings: resultado.settings,
+        premium: resultado.premium,
         // Si el bot está apagado, el cambio tardará como mucho un minuto en aplicarse.
-        applied: notificado,
+        applied: resultado.applied,
       },
       { headers: rateLimitHeaders(limite, 'guardar') }
     );

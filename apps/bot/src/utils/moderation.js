@@ -67,6 +67,13 @@ async function createCase(guild, data, settings = null) {
     expiresAt: duration ? new Date(Date.now() + duration) : null,
   });
 
+  /*
+   * Contador diario de moderación, para la gráfica del panel. Se hace aquí
+   * porque `createCase` es el único punto por el que pasan todas las
+   * sanciones, vengan de un comando o del AutoMod.
+   */
+  guild.client?.modules?.get('dailyStats')?.registrar(guild.id, 'moderationActions');
+
   // Las advertencias llevan contador propio para consultarlo rápido.
   if (data.type === 'warn') {
     await Member.updateOne(
@@ -132,10 +139,45 @@ async function sendModerationLog(guild, caseDoc, settings) {
 }
 
 /**
+ * Enlace público para apelar una sanción, si el servidor lo tiene activado.
+ *
+ * El enlace NO lleva el número de caso a propósito. El aviso privado se manda
+ * antes de banear (después ya no se puede escribir al usuario), y en ese
+ * momento el caso todavía no existe. La página identifica al usuario con su
+ * cuenta de Discord y busca su sanción, lo que además impide que nadie apele
+ * en nombre de otro cambiando un número en la barra de direcciones.
+ *
+ * @param {object} settings Configuración del servidor.
+ * @param {string} guildId
+ * @param {string} type Tipo de sanción.
+ * @returns {string|null}
+ */
+function appealUrl(settings, guildId, type) {
+  if (!settings?.appeals?.enabled) return null;
+
+  // Cada servidor decide qué sanciones admiten apelación: no tiene sentido
+  // apelar el borrado de unos mensajes.
+  const permitidos = settings.appeals.types || [];
+  if (permitidos.length > 0 && !permitidos.includes(type)) return null;
+
+  const site = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!site) return null;
+
+  return `${site.replace(/\/$/, '')}/apelar/${guildId}`;
+}
+
+/**
  * Avisa por privado al usuario sancionado.
  * Falla en silencio: mucha gente tiene los mensajes privados cerrados.
+ *
+ * @param {import('discord.js').User} user
+ * @param {import('discord.js').Guild} guild
+ * @param {string} type
+ * @param {string} reason
+ * @param {number|null} [duration]
+ * @param {object} [settings] Configuración del servidor, para el enlace de apelación.
  */
-async function notifyUser(user, guild, type, reason, duration = null) {
+async function notifyUser(user, guild, type, reason, duration = null, settings = null) {
   const meta = ACTION_META[type] || { label: type, emoji: '📌', color: EMBED_COLORS.neutral };
 
   const embed = new EmbedBuilder()
@@ -149,6 +191,19 @@ async function notifyUser(user, guild, type, reason, duration = null) {
     embed.addFields({ name: 'Duración', value: formatDuration(duration), inline: true });
   }
 
+  /*
+   * El enlace de apelación va en el propio aviso porque es el único momento en
+   * que se puede llegar a alguien a quien acabas de banear: después ya no está
+   * en el servidor y no hay forma de escribirle.
+   */
+  const url = appealUrl(settings, guild.id, type);
+  if (url) {
+    embed.addFields({
+      name: '📝 ¿Crees que es un error?',
+      value: `Puedes explicar tu versión aquí:\n${url}`,
+    });
+  }
+
   try {
     await user.send({ embeds: [embed] });
     return true;
@@ -157,4 +212,12 @@ async function notifyUser(user, guild, type, reason, duration = null) {
   }
 }
 
-module.exports = { ACTION_META, nextCaseId, createCase, buildCaseEmbed, sendModerationLog, notifyUser };
+module.exports = {
+  ACTION_META,
+  nextCaseId,
+  createCase,
+  buildCaseEmbed,
+  sendModerationLog,
+  notifyUser,
+  appealUrl,
+};

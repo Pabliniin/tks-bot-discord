@@ -67,6 +67,11 @@ module.exports = {
       return;
     }
 
+    // Contadores diarios para las gráficas de crecimiento del panel.
+    const dailyStats = client.modules.get('dailyStats');
+    dailyStats?.registrar(member.guild.id, 'joins');
+    dailyStats?.registrarMiembros(member.guild.id, member.guild.memberCount);
+
     // ── Anti-Raid: se evalúa antes que nada ──────────────────────
     const antiraid = client.modules.get('antiraid');
     if (antiraid) {

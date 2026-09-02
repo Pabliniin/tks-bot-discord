@@ -42,13 +42,22 @@ module.exports = {
       return; // Sin base de datos no se puede hacer nada útil.
     }
 
+    // Contador diario para las gráficas del panel. Se cuenta el mensaje aunque
+    // luego lo borre el AutoMod: para medir actividad, se escribió igual.
+    client.modules
+      .get('dailyStats')
+      ?.registrar(message.guild.id, 'messages', 1, message.channel.id);
+
     // ── Módulos que inspeccionan cada mensaje ────────────────────
     // El AutoMod va primero: si borra el mensaje, no se sigue procesando.
     const automod = client.modules.get('automod');
     if (automod) {
       try {
         const handled = await automod.handleMessage(client, message, settings);
-        if (handled) return;
+        if (handled) {
+          client.modules.get('dailyStats')?.registrar(message.guild.id, 'automodActions');
+          return;
+        }
       } catch (err) {
         logger.error('Error en AutoMod:', err.message);
       }

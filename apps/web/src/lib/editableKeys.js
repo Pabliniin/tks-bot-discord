@@ -38,6 +38,9 @@ export const EDITABLE_KEYS = new Set([
   'starboard',
   'automod',
   'tickets',
+  'appeals',
+  'music',
+  'counters',
 ]);
 
 /**

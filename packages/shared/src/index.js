@@ -5,6 +5,11 @@ const constants = require('./constants');
 const variables = require('./variables');
 const leveling = require('./leveling');
 const premium = require('./premium');
+const backup = require('./backup');
+const templates = require('./templates');
+const automodSimulator = require('./automodSimulator');
+const plans = require('./plans');
+const giveaways = require('./giveaways');
 
 const Guild = require('./models/Guild');
 const Member = require('./models/Member');
@@ -14,6 +19,11 @@ const Ticket = require('./models/Ticket');
 const StarboardMessage = require('./models/StarboardMessage');
 const TempChannel = require('./models/TempChannel');
 const BotInstance = require('./models/BotInstance');
+const ConfigHistory = require('./models/ConfigHistory');
+const Appeal = require('./models/Appeal');
+const GuildStats = require('./models/GuildStats');
+const StripeEvent = require('./models/StripeEvent');
+const Giveaway = require('./models/Giveaway');
 
 /**
  * Obtiene la configuración de un servidor, creándola con los valores por
@@ -42,7 +52,26 @@ module.exports = {
   ...variables,
   ...leveling,
   ...premium,
-  models: { Guild, Member, User, Case, Ticket, StarboardMessage, TempChannel, BotInstance },
+  ...backup,
+  ...templates,
+  ...automodSimulator,
+  ...plans,
+  ...giveaways,
+  models: {
+    Guild,
+    Member,
+    User,
+    Case,
+    Ticket,
+    StarboardMessage,
+    TempChannel,
+    BotInstance,
+    ConfigHistory,
+    Appeal,
+    GuildStats,
+    StripeEvent,
+    Giveaway,
+  },
   Guild,
   Member,
   User,
@@ -51,5 +80,10 @@ module.exports = {
   StarboardMessage,
   TempChannel,
   BotInstance,
+  ConfigHistory,
+  Appeal,
+  GuildStats,
+  StripeEvent,
+  Giveaway,
   getGuildSettings,
 };

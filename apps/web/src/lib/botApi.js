@@ -140,4 +140,61 @@ export function testWelcome(guildId, userId, type = 'welcome') {
   });
 }
 
+/**
+ * Traduce identificadores a nombres y fotos.
+ *
+ * La base de datos solo guarda identificadores; los nombres los tiene Discord.
+ * Si el bot está apagado se devuelve un objeto vacío y quien llama enseña el
+ * identificador en crudo, que es mejor que no enseñar nada.
+ *
+ * @param {string} guildId
+ * @param {string[]} ids Máximo 100 por llamada.
+ * @returns {Promise<Record<string, { id: string, name: string, tag: string, avatar: string, inGuild: boolean }>>}
+ */
+export async function resolveMembers(guildId, ids) {
+  if (!Array.isArray(ids) || ids.length === 0) return {};
+
+  try {
+    const data = await request(`/api/guilds/${guildId}/members/resolve`, {
+      method: 'POST',
+      body: JSON.stringify({ ids: ids.slice(0, 100) }),
+    });
+    return data.users || {};
+  } catch {
+    return {};
+  }
+}
+
+/** Nombre e icono de un servidor, para las páginas públicas. */
+export async function getPublicGuild(guildId) {
+  try {
+    return await request(`/api/guilds/${guildId}/public`);
+  } catch {
+    return null;
+  }
+}
+
+/** Levanta el baneo de un usuario. Lo usa la revisión de apelaciones. */
+export function unbanUser(guildId, userId, reason) {
+  return request(`/api/guilds/${guildId}/unban`, {
+    method: 'POST',
+    body: JSON.stringify({ userId, reason }),
+  });
+}
+
+/**
+ * Envía un mensaje privado a un usuario.
+ * Devuelve `{ ok: false }` sin lanzar si tiene los privados cerrados.
+ */
+export async function notifyUser(guildId, userId, { title, description, color }) {
+  try {
+    return await request(`/api/guilds/${guildId}/notify`, {
+      method: 'POST',
+      body: JSON.stringify({ userId, title, description, color }),
+    });
+  } catch {
+    return { ok: false, motivo: 'No se pudo contactar con el bot.' };
+  }
+}
+
 export { request };

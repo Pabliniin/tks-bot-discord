@@ -81,7 +81,7 @@ module.exports = {
       return;
     }
 
-    await notifyUser(target, ctx.guild, 'timeout', reason, duration).catch(() => {});
+    await notifyUser(target, ctx.guild, 'timeout', reason, duration, ctx.settings).catch(() => {});
 
     const doc = await createCase(
       ctx.guild,

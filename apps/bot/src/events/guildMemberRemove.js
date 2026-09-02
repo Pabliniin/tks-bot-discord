@@ -20,6 +20,11 @@ module.exports = {
       return;
     }
 
+    // Contadores diarios para las gráficas de crecimiento del panel.
+    const dailyStats = client.modules.get('dailyStats');
+    dailyStats?.registrar(member.guild.id, 'leaves');
+    dailyStats?.registrarMiembros(member.guild.id, member.guild.memberCount);
+
     // Guarda los roles para poder restaurarlos si vuelve.
     if (settings.autoroles?.restoreOnRejoin && member.roles) {
       const roleIds = member.roles.cache

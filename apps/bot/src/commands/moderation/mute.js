@@ -154,7 +154,7 @@ module.exports = {
       { upsert: true }
     ).catch(() => {});
 
-    await notifyUser(target, ctx.guild, 'mute', reason, duration).catch(() => {});
+    await notifyUser(target, ctx.guild, 'mute', reason, duration, ctx.settings).catch(() => {});
 
     const doc = await createCase(
       ctx.guild,

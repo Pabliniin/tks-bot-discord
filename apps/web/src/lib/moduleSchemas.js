@@ -459,6 +459,251 @@ export const MODULE_SCHEMAS = {
           { key: 'levels.card.textColor', type: 'color', label: 'Color del texto' },
         ],
       },
+      {
+        title: 'Clasificación pública',
+        description:
+          'Publica una página web con el ranking del servidor. Tus miembros entran a ver su puesto sin instalar nada.',
+        collapsible: true,
+        fields: [
+          {
+            key: 'levels.publicLeaderboard.enabled',
+            type: 'toggle',
+            label: 'Publicar la clasificación en la web',
+            help: 'Va apagada por defecto: al activarla, cualquiera con el enlace verá el ranking de tu servidor.',
+          },
+          {
+            key: 'levels.publicLeaderboard.description',
+            type: 'textarea',
+            label: 'Texto bajo el título',
+            rows: 2,
+            maxLength: 300,
+            placeholder: 'Los más activos de nuestra comunidad',
+            showIf: 'levels.publicLeaderboard.enabled',
+          },
+          {
+            key: 'levels.publicLeaderboard.__enlace',
+            type: 'leaderboardLink',
+            label: 'Enlace',
+            showIf: 'levels.publicLeaderboard.enabled',
+          },
+        ],
+      },
+    ],
+  },
+
+  // ── Contadores ───────────────────────────────────────────────
+  counters: {
+    title: 'Contadores',
+    description:
+      'Canales de voz cuyo nombre se actualiza solo con las cifras del servidor: «👥 Miembros: 1.234». Se ven en la lista sin entrar en ninguno.',
+    sections: [
+      {
+        title: 'General',
+        fields: [
+          { key: 'counters.enabled', type: 'toggle', label: 'Activar los contadores' },
+          {
+            key: 'counters.channels',
+            type: 'list',
+            label: 'Canales contador',
+            addLabel: 'Añadir contador',
+            // `itemLabel` es la clave cuyo valor se enseña como título del
+            // elemento en la lista, no un texto fijo.
+            itemLabel: 'type',
+            max: 10,
+            help: 'Crea un canal de voz vacío, elígelo aquí y el bot le pondrá el nombre. Nadie debería poder entrar ni hablar en él: quítale el permiso de Conectar a @everyone.',
+            showIf: 'counters.enabled',
+            itemFields: [
+              {
+                key: 'channelId',
+                type: 'channel',
+                label: 'Canal de voz',
+                channelTypes: CHANNEL_TYPES.voice,
+                required: true,
+              },
+              {
+                key: 'type',
+                type: 'select',
+                label: 'Qué cuenta',
+                options: [
+                  { value: 'miembros', label: 'Miembros (todos)' },
+                  { value: 'humanos', label: 'Personas (sin bots)' },
+                  { value: 'bots', label: 'Bots' },
+                  { value: 'enLinea', label: 'En línea ahora' },
+                  { value: 'canales', label: 'Canales' },
+                  { value: 'roles', label: 'Roles' },
+                  { value: 'boosts', label: 'Mejoras del servidor' },
+                ],
+              },
+              {
+                key: 'template',
+                type: 'text',
+                label: 'Nombre del canal',
+                maxLength: 100,
+                placeholder: '👥 Miembros: {valor}',
+                help: 'Escribe {valor} donde quieras que salga la cifra. Déjalo vacío para usar el nombre por defecto.',
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+
+  // ── Música ───────────────────────────────────────────────────
+  music: {
+    title: 'Música',
+    description:
+      'Reproduce música desde YouTube, YouTube Music, SoundCloud y Deezer, con cola, filtros y votación para saltar.',
+    sections: [
+      {
+        title: 'General',
+        fields: [
+          { key: 'music.enabled', type: 'toggle', label: 'Activar la música' },
+          {
+            key: 'music.defaultSource',
+            type: 'select',
+            label: 'Dónde buscar por defecto',
+            options: [
+              { value: 'ytmsearch', label: 'YouTube Music (recomendado)' },
+              { value: 'ytsearch', label: 'YouTube' },
+              { value: 'scsearch', label: 'SoundCloud' },
+              { value: 'dzsearch', label: 'Deezer' },
+            ],
+            help: 'YouTube Music suele acertar más con canciones: no devuelve reacciones ni directos de diez horas.',
+            showIf: 'music.enabled',
+          },
+          {
+            key: 'music.announce',
+            type: 'toggle',
+            label: 'Anunciar cada canción que empieza',
+            showIf: 'music.enabled',
+          },
+        ],
+      },
+      {
+        title: 'Quién manda',
+        description: 'Decide quién puede controlar la reproducción de los demás.',
+        collapsible: true,
+        fields: [
+          {
+            key: 'music.djRoleId',
+            type: 'role',
+            label: 'Rol de DJ',
+            help: 'Quien lo tenga puede saltar, parar y cambiar la cola sin votar.',
+            showIf: 'music.enabled',
+          },
+          {
+            key: 'music.djOnly',
+            type: 'toggle',
+            label: 'Solo el DJ puede controlar la música',
+            help: 'Con esto activado, el resto solo puede pedir canciones. Útil en servidores grandes.',
+            showIf: 'music.enabled',
+          },
+          {
+            key: 'music.voteSkipPercent',
+            type: 'number',
+            label: 'Votos para saltar (%)',
+            min: 1,
+            max: 100,
+            help: 'Porcentaje de los que estén escuchando. Quien pidió la canción siempre puede saltarla.',
+            showIf: 'music.enabled',
+          },
+        ],
+      },
+      {
+        title: 'Límites',
+        collapsible: true,
+        fields: [
+          {
+            key: 'music.defaultVolume',
+            type: 'number',
+            label: 'Volumen inicial (%)',
+            min: 1,
+            max: 200,
+            showIf: 'music.enabled',
+          },
+          {
+            key: 'music.maxVolume',
+            type: 'number',
+            label: 'Volumen máximo (%)',
+            min: 1,
+            max: 200,
+            help: 'Por encima de 150 el audio empieza a saturar y suena peor.',
+            showIf: 'music.enabled',
+          },
+          {
+            key: 'music.allowedVoiceChannels',
+            type: 'channels',
+            label: 'Canales de voz permitidos',
+            channelTypes: CHANNEL_TYPES.voice,
+            help: 'Déjalo vacío para permitir todos.',
+            showIf: 'music.enabled',
+          },
+          {
+            key: 'music.commandChannels',
+            type: 'channels',
+            label: 'Canales donde se puede pedir música',
+            channelTypes: CHANNEL_TYPES.text,
+            help: 'Déjalo vacío para permitir todos.',
+            showIf: 'music.enabled',
+          },
+        ],
+      },
+    ],
+  },
+
+  // ── Apelaciones ──────────────────────────────────────────────
+  appeals: {
+    title: 'Apelaciones',
+    description:
+      'Deja que un sancionado explique su versión desde una página web. Sin esto, alguien baneado no tiene forma de contactar contigo.',
+    sections: [
+      {
+        title: 'General',
+        fields: [
+          { key: 'appeals.enabled', type: 'toggle', label: 'Aceptar apelaciones' },
+          {
+            key: 'appeals.channelId',
+            type: 'channel',
+            label: 'Canal donde avisar de cada apelación',
+            channelTypes: CHANNEL_TYPES.text,
+            help: 'Ponlo en un canal privado del equipo: las apelaciones son personales.',
+            showIf: 'appeals.enabled',
+          },
+          {
+            key: 'appeals.types',
+            type: 'tags',
+            label: 'Sanciones que se pueden apelar',
+            placeholder: 'ban, kick, timeout, mute',
+            help: 'Escribe el tipo y pulsa Enter. Valores válidos: ban, kick, timeout, mute, softban, warn.',
+            showIf: 'appeals.enabled',
+          },
+          {
+            key: 'appeals.deadlineDays',
+            type: 'number',
+            label: 'Plazo para apelar (días)',
+            min: 0,
+            max: 365,
+            help: '0 = sin límite de tiempo.',
+            showIf: 'appeals.enabled',
+          },
+          {
+            key: 'appeals.instructions',
+            type: 'textarea',
+            label: 'Instrucciones para quien apela',
+            rows: 3,
+            maxLength: 1000,
+            placeholder: 'Explica qué pasó y por qué crees que la sanción fue un error.',
+            showIf: 'appeals.enabled',
+          },
+          {
+            key: 'appeals.__enlace',
+            type: 'appealLink',
+            label: 'Enlace',
+            showIf: 'appeals.enabled',
+          },
+        ],
+      },
     ],
   },
 
@@ -1020,6 +1265,12 @@ export const MODULE_SCHEMAS = {
     description:
       'Modera automáticamente el chat: enlaces, invitaciones, spam, mayúsculas, palabras prohibidas y más.',
     sections: [
+      {
+        title: 'Simulador',
+        description:
+          'Prueba cualquier mensaje contra tus filtros antes de activarlos. No se envía nada a Discord.',
+        fields: [{ key: 'automod.__simulador', type: 'automodSimulator', label: 'Simulador' }],
+      },
       {
         title: 'General',
         fields: [

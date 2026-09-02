@@ -60,6 +60,24 @@
     "subcommands": []
   },
   {
+    "name": "clearqueue",
+    "category": "music",
+    "description": "Vacía la cola sin parar lo que está sonando.",
+    "usage": "",
+    "examples": [
+      "clearqueue"
+    ],
+    "aliases": [
+      "cq",
+      "vaciarcola",
+      "vaciar"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
     "name": "color",
     "category": "general",
     "description": "Cambia tu color en el servidor.",
@@ -112,6 +130,68 @@
     "cooldown": 5,
     "userPermissions": [],
     "subcommands": []
+  },
+  {
+    "name": "filter",
+    "category": "music",
+    "description": "Aplica un efecto de audio a la música.",
+    "usage": "[filtro]",
+    "examples": [
+      "filter bassboost",
+      "filter nightcore",
+      "filter ninguno"
+    ],
+    "aliases": [
+      "filtro",
+      "efecto",
+      "filters"
+    ],
+    "premium": true,
+    "cooldown": 5,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "giveaway",
+    "category": "giveaway",
+    "description": "Crea y gestiona sorteos.",
+    "usage": "<crear|terminar|resortear|cancelar|lista>",
+    "examples": [
+      "giveaway crear 1d 1 Nitro de un mes",
+      "giveaway terminar 123456789012345678",
+      "giveaway lista"
+    ],
+    "aliases": [
+      "sorteo",
+      "gw"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [
+      "ManageGuild"
+    ],
+    "subcommands": [
+      {
+        "name": "crear",
+        "description": "Empieza un sorteo nuevo."
+      },
+      {
+        "name": "terminar",
+        "description": "Cierra un sorteo antes de tiempo y sortea ya."
+      },
+      {
+        "name": "resortear",
+        "description": "Saca otro ganador de un sorteo ya terminado."
+      },
+      {
+        "name": "cancelar",
+        "description": "Cancela un sorteo sin sortear a nadie."
+      },
+      {
+        "name": "lista",
+        "description": "Enseña los sorteos activos."
+      }
+    ]
   },
   {
     "name": "help",
@@ -169,6 +249,26 @@
     "userPermissions": [
       "ManageChannels"
     ],
+    "subcommands": []
+  },
+  {
+    "name": "loop",
+    "category": "music",
+    "description": "Repite la canción actual o toda la cola.",
+    "usage": "[off|cancion|cola]",
+    "examples": [
+      "loop cancion",
+      "loop cola",
+      "loop off"
+    ],
+    "aliases": [
+      "repeat",
+      "repetir",
+      "bucle"
+    ],
+    "premium": false,
+    "cooldown": 2,
+    "userPermissions": [],
     "subcommands": []
   },
   {
@@ -236,6 +336,64 @@
     ]
   },
   {
+    "name": "nowplaying",
+    "category": "music",
+    "description": "Enseña qué está sonando y por dónde va.",
+    "usage": "",
+    "examples": [
+      "nowplaying"
+    ],
+    "aliases": [
+      "np",
+      "sonando",
+      "ahora"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "pause",
+    "category": "music",
+    "description": "Pausa la música, o la reanuda si ya estaba pausada.",
+    "usage": "",
+    "examples": [
+      "pause",
+      "resume"
+    ],
+    "aliases": [
+      "pausa",
+      "resume",
+      "reanudar",
+      "continuar"
+    ],
+    "premium": false,
+    "cooldown": 2,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "play",
+    "category": "music",
+    "description": "Reproduce una canción o la añade a la cola.",
+    "usage": "<canción o enlace>",
+    "examples": [
+      "play never gonna give you up",
+      "play https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    ],
+    "aliases": [
+      "p",
+      "reproducir",
+      "poner",
+      "sonar"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
     "name": "points",
     "category": "moderation",
     "description": "Un servidor basado en puntos que pueden ser dados por los moderadores.",
@@ -290,6 +448,25 @@
     "subcommands": []
   },
   {
+    "name": "queue",
+    "category": "music",
+    "description": "Enseña la cola de reproducción.",
+    "usage": "[página]",
+    "examples": [
+      "queue",
+      "queue 2"
+    ],
+    "aliases": [
+      "q",
+      "cola",
+      "listareproduccion"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
     "name": "rank",
     "category": "levels",
     "description": "Mira tu tarjeta de rango de servidor o la de otra persona.",
@@ -305,6 +482,23 @@
     ],
     "premium": false,
     "cooldown": 8,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "remove",
+    "category": "music",
+    "description": "Quita una canción de la cola por su número.",
+    "usage": "<número>",
+    "examples": [
+      "remove 3"
+    ],
+    "aliases": [
+      "quitar",
+      "quitarcancion"
+    ],
+    "premium": false,
+    "cooldown": 2,
     "userPermissions": [],
     "subcommands": []
   },
@@ -413,6 +607,26 @@
     ],
     "premium": false,
     "cooldown": 3,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "seek",
+    "category": "music",
+    "description": "Salta a un momento concreto de la canción.",
+    "usage": "<tiempo>",
+    "examples": [
+      "seek 1:30",
+      "seek 90",
+      "seek 2m30s"
+    ],
+    "aliases": [
+      "ir",
+      "avanzar",
+      "saltara"
+    ],
+    "premium": false,
+    "cooldown": 2,
     "userPermissions": [],
     "subcommands": []
   },
@@ -529,6 +743,42 @@
     "subcommands": []
   },
   {
+    "name": "shuffle",
+    "category": "music",
+    "description": "Mezcla el orden de la cola.",
+    "usage": "",
+    "examples": [
+      "shuffle"
+    ],
+    "aliases": [
+      "mezclar",
+      "aleatorio",
+      "barajar"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
+    "name": "skip",
+    "category": "music",
+    "description": "Salta la canción actual. Si hay más gente escuchando, se vota.",
+    "usage": "",
+    "examples": [
+      "skip"
+    ],
+    "aliases": [
+      "s",
+      "saltar",
+      "siguiente"
+    ],
+    "premium": false,
+    "cooldown": 2,
+    "userPermissions": [],
+    "subcommands": []
+  },
+  {
     "name": "slowmode",
     "category": "moderation",
     "description": "Habilita o deshabilita el modo lento en un canal.",
@@ -590,6 +840,26 @@
         "description": "Activa o desactiva el starboard."
       }
     ]
+  },
+  {
+    "name": "stop",
+    "category": "music",
+    "description": "Para la música, vacía la cola y sale del canal de voz.",
+    "usage": "",
+    "examples": [
+      "stop"
+    ],
+    "aliases": [
+      "parar",
+      "detener",
+      "salir",
+      "disconnect",
+      "dc"
+    ],
+    "premium": false,
+    "cooldown": 3,
+    "userPermissions": [],
+    "subcommands": []
   },
   {
     "name": "timeout",
@@ -790,6 +1060,24 @@
     "userPermissions": [
       "MoveMembers"
     ],
+    "subcommands": []
+  },
+  {
+    "name": "volume",
+    "category": "music",
+    "description": "Consulta o cambia el volumen.",
+    "usage": "[0-200]",
+    "examples": [
+      "volume",
+      "volume 50"
+    ],
+    "aliases": [
+      "vol",
+      "volumen"
+    ],
+    "premium": false,
+    "cooldown": 2,
+    "userPermissions": [],
     "subcommands": []
   },
   {

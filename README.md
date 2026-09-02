@@ -1,8 +1,8 @@
 # TK$ Bot
 
 Bot multipropósito para Discord con panel de control web. Réplica funcional de
-ProBot: los mismos 41 comandos, los mismos 15 módulos configurables y el mismo
-panel, pero con código propio que puedes modificar libremente.
+ProBot: 58 comandos, 18 módulos configurables y el mismo panel — más música y
+cobros con Stripe. Código propio, modificable libremente.
 
 ---
 
@@ -10,13 +10,15 @@ panel, pero con código propio que puedes modificar libremente.
 
 **Bot de Discord** (`apps/bot`)
 
-- 41 comandos que funcionan **a la vez** con prefijo (`-ban`) y con barra (`/ban`).
-- 15 módulos: bienvenidas, respuestas automáticas, embeds, niveles, auto-roles,
+- 58 comandos que funcionan **a la vez** con prefijo (`-ban`) y con barra (`/ban`).
+- 18 módulos: bienvenidas, respuestas automáticas, embeds, niveles, auto-roles,
   logs, colores, roles autoasignables, canales temporales, enlaces temporales,
-  anti-raid, protección VIP, starboard, automod y tickets.
+  anti-raid, protección VIP, starboard, automod, tickets, apelaciones, música,
+  sorteos y contadores.
 - Tarjetas de imagen generadas al vuelo (bienvenida, rango y perfil).
 - AutoMod con 11 filtros independientes.
 - Sanciones temporales que se levantan solas aunque reinicies el bot.
+- Registros que dicen siempre **quién** hizo **qué** y **a quién**.
 
 **Panel de control** (`apps/web`)
 
@@ -28,6 +30,42 @@ panel, pero con código propio que puedes modificar libremente.
 **Paquete compartido** (`packages/shared`)
 
 - Modelos de MongoDB y constantes que usan tanto el bot como la web.
+
+---
+
+## Lo que no tiene la competencia
+
+Once funciones pensadas para diferenciar el producto de ProBot y similares.
+Están todas terminadas y probadas.
+
+| Función | Dónde está | Para qué sirve |
+| --- | --- | --- |
+| **Cobros con Stripe** | `/premium` | La gente compra sola: elige plan, paga con tarjeta y el premium se activa al momento. Se dan de baja ellos desde el portal de Stripe. Ver [PAGOS.md](PAGOS.md). |
+| **Panel de administración** | `/admin` | Cuántos servidores hay, cuántos pagan y cuánto entra al mes. Solo para los dueños y el personal del bot. |
+| **Sorteos** | `giveaway` | Con botón en vez de reacción: se comprueban requisitos (rol, antigüedad, nivel) y se dice al momento por qué no puedes entrar. ProBot los hace mal. |
+| **Contadores de servidor** | Panel → Contadores | Canales de voz que se renombran solos: «👥 Miembros: 1.234». Se ven desde fuera y hacen algo de publicidad por su cuenta. |
+| **Música** | 13 comandos | ProBot no tiene música, y desde que cerraron Groovy y Rythm nadie ha ocupado bien ese hueco. Cola, votación para saltar, filtros y cuatro fuentes. Requiere [Lavalink](MUSICA.md). |
+| **Clasificación pública** | `/clasificacion/<servidor>` | Una página web con el ranking del servidor. Cada miembro entra a ver su puesto, y de paso ve tu marca. Es el mejor canal de captación que puede tener un bot. Va apagada por defecto y se activa en Niveles. |
+| **Estadísticas** | Panel → Estadísticas | Gráficas de crecimiento, entradas y salidas, retención, mensajes por día y canales más activos, con comparación frente al periodo anterior. |
+| **Simulador de AutoMod** | Panel → AutoMod | Escribes un mensaje y dice qué haría el bot, sin tocar Discord. Prueba la configuración de la pantalla **aunque no la hayas guardado**, para no activar filtros a ciegas. |
+| **Historial con deshacer** | Panel → Historial | Quién cambió qué y cuándo, con los valores anteriores. Si alguien rompe algo, se deshace con un clic. Se conservan 180 días. |
+| **Apelaciones** | `/apelar/<servidor>` | Quien recibe una sanción puede explicar su versión desde una página web. El enlace va en el aviso privado que recibe. El equipo lo revisa desde el panel y puede levantar el baneo desde ahí. |
+| **Copias y plantillas** | Panel → Herramientas | Exporta la configuración a un archivo y la restaura, en el mismo servidor o en otro. Cuatro plantillas (Comunidad, Gaming, Soporte y Blindado) que configuran todo de un clic. |
+
+También hay **Panel → Moderación**, para consultar el historial de sanciones de
+cualquier miembro sin abrir Discord, y retirar advertencias.
+
+### Detalles que importan
+
+- **La copia portable** quita los canales y roles al exportar, porque no existen
+  en otro servidor. La **copia completa** los conserva, para restaurar el mismo.
+- **El simulador comparte los detectores con el bot** (`packages/shared/src/automodFilters.js`),
+  así que lo que enseña es literalmente lo que aplicará el bot. Si usara una
+  copia aparte, acabaría mintiendo en cuanto se tocara una de las dos.
+- **La apelación exige iniciar sesión con Discord.** Sin eso, cualquiera podría
+  apelar haciéndose pasar por otro y el equipo no podría fiarse de nada.
+- **La clasificación pública va apagada por defecto.** Publicar quién habla más
+  en un servidor privado sin que su dueño lo pida sería filtrar datos suyos.
 
 ---
 
@@ -206,7 +244,7 @@ TK$ BOT/
 ├── apps/
 │   ├── bot/                    Cliente de Discord
 │   │   ├── src/
-│   │   │   ├── commands/       Los 41 comandos, por categoría
+│   │   │   ├── commands/       Los 58 comandos, por categoría
 │   │   │   ├── events/         Escuchadores de eventos de Discord
 │   │   │   ├── modules/        Lógica de cada módulo del panel
 │   │   │   ├── canvas/         Generación de las tarjetas de imagen
@@ -217,12 +255,30 @@ TK$ BOT/
 │   │   └── tests/              Pruebas del bot
 │   └── web/                    Sitio y panel (Next.js)
 │       ├── src/app/            Páginas y rutas de API
+│       │   ├── clasificacion/  Clasificación pública (sin sesión)
+│       │   ├── apelar/         Formulario público de apelación
+│       │   └── dashboard/      Panel: módulos y secciones de gestión
 │       ├── src/components/     Componentes de interfaz
-│       ├── src/lib/            Sesión, OAuth, esquemas de módulos
-│       └── tests/              Pruebas de seguridad del panel
-├── packages/shared/            Modelos de MongoDB y constantes
+│       ├── src/lib/            Sesión, OAuth, esquemas y lógica pura
+│       └── tests/              Pruebas del panel
+├── packages/shared/            Modelos de MongoDB y lógica compartida
 └── scripts/                    Validación y generación del catálogo
 ```
+
+**Dónde vive la lógica que se prueba.** Todo lo que es cálculo puro está en
+módulos sin dependencias de Next.js ni de mongoose, para poder probarlo con
+`node --test` sin levantar nada:
+
+| Archivo | Qué resuelve |
+| --- | --- |
+| `packages/shared/src/automodFilters.js` | Los detectores del AutoMod. Los comparten el bot y el simulador del panel. |
+| `packages/shared/src/automodSimulator.js` | Qué haría el bot con un mensaje dado. |
+| `packages/shared/src/backup.js` | Construir y leer las copias de seguridad. |
+| `packages/shared/src/templates.js` | Las cuatro plantillas de configuración. |
+| `apps/web/src/lib/configHistory.js` | Guardar los valores anteriores para poder deshacer. |
+| `apps/web/src/lib/guildStats.js` | Series de las gráficas y el trazado del SVG. |
+| `apps/web/src/lib/mergeLogEvents.js` | Combinar los eventos de registro sin pisar los ya guardados. |
+| `apps/web/src/lib/saveSettings.js` | Único punto por el que se escribe la configuración. |
 
 ---
 
@@ -361,10 +417,67 @@ mismos campos.
 
 ---
 
+## El botón «Añadir aplicación» del perfil del bot
+
+Cuando alguien pulsa el nombre del bot en Discord, sale una tarjeta con un
+botón **+ Añadir aplicación**. Ese botón **no funciona solo**: hay que
+configurarlo en el portal de Discord, y por defecto viene desactivado.
+
+Ve a [discord.com/developers/applications](https://discord.com/developers/applications),
+elige tu aplicación y abre **Installation** en el menú de la izquierda:
+
+**1. Install Link**
+Cámbialo de `None` a **Discord Provided Link**. Esto es lo que enciende el
+botón. Sin ello no hace nada al pulsarlo.
+
+**2. Installation Contexts**
+Marca **Guild Install**. Deja **User Install** desmarcado: este bot está hecho
+para servidores, y activarlo dejaría que la gente lo «instalara» en su cuenta
+sin que funcionara nada.
+
+**3. Default Install Settings** → *Guild Install*
+
+- **Scopes:** `bot` y `applications.commands`
+- **Permissions:** marca los que necesita el bot. La forma rápida es pegar el
+  número de permisos: en la misma página hay un calculador, o usa el enlace de
+  invitación que genera el panel, que ya lleva los correctos.
+
+**4. Guarda los cambios** (botón *Save Changes* abajo).
+
+El cambio tarda unos minutos en verse. Cierra Discord del todo y vuelve a
+abrirlo si sigue sin salir.
+
+> **Nota sobre el número de permisos.** El valor correcto está en
+> `packages/shared/src/constants.json` (`REQUIRED_PERMISSIONS`). Si lo pones a
+> mano en el portal, asegúrate de incluir **Enviar mensajes**, **Adjuntar
+> archivos**, **Leer historial** y **Conectar/Hablar** en voz: sin el primero
+> el bot es mudo, sin el segundo no salen las tarjetas de bienvenida y de
+> rango, y sin los últimos no funciona la música ni los canales temporales.
+
+### La «Web oficial» y la descripción del perfil
+
+En la misma aplicación, en **General Information**:
+
+- **Description** — el texto que sale bajo el nombre en la tarjeta del perfil.
+- **Terms of Service URL** — `https://tudominio/legal/terms`
+- **Privacy Policy URL** — `https://tudominio/legal/privacy`
+
+Las dos últimas son **obligatorias** si algún día quieres verificar el bot
+(hace falta a partir de 75 servidores). Ya las tienes hechas en el panel.
+
+---
+
 ## Problemas frecuentes
 
 **«Faltan variables de entorno»** — No has copiado `.env.example` a `.env`, o
 falta algún valor. El bot dice cuáles.
+
+**El botón «Añadir aplicación» no hace nada** — Falta configurar el *Install
+Link* en el portal de Discord. Ver el apartado de arriba.
+
+**Los comandos de música dicen que no está configurado** — Falta el servicio
+Lavalink. Las instrucciones están en [MUSICA.md](MUSICA.md). El resto del bot
+funciona igual sin él.
 
 **El bot arranca pero no responde a los comandos** — Faltan los *intents*
 privilegiados. Actívalos en el portal de Discord (paso 1.2) y reinicia el bot.
@@ -420,8 +533,26 @@ npm run web
   `x-api-key`. Nunca la expongas a internet.
 
 - **Escalado.** El XP se acumula en memoria y solo se escribe en MongoDB una vez
-  por usuario y minuto. Con muchos servidores, lo primero que conviene añadir es
-  Redis para la caché de configuración.
+  por usuario y minuto. Las estadísticas diarias hacen lo mismo: se acumulan en
+  memoria y se vuelcan cada dos minutos en una sola operación por lotes, así que
+  un servidor con mucho tráfico no genera una escritura por mensaje. Con muchos
+  servidores, lo primero que conviene añadir es Redis para la caché de
+  configuración y para el limitador de peticiones.
+
+- **Un solo punto de escritura.** Toda la configuración se guarda a través de
+  `apps/web/src/lib/saveSettings.js`, lo use el formulario, una plantilla, la
+  importación de una copia o el botón de deshacer. Así ninguna de esas vías se
+  puede saltar la validación ni dejar de anotarse en el historial.
+
+- **Datos que caducan solos.** El historial de cambios se borra a los 180 días y
+  las estadísticas a los 400, mediante índices TTL de MongoDB. No hace falta
+  ninguna tarea de limpieza.
+
+- **Gráficas sin librerías.** Las del panel se dibujan con SVG escrito a mano.
+  Cualquier librería de gráficas habitual añadiría entre 50 y 150 KB al paquete,
+  y aquí solo hacen falta una línea y unas barras. El trazado vive en
+  `apps/web/src/lib/guildStats.js` porque allí está probado: un `NaN` en un
+  atributo `d` no da ningún error, solo deja la gráfica en blanco.
 
 ---
 

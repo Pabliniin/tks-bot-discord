@@ -85,7 +85,7 @@ module.exports = {
 
     // Se avisa antes de banear: después ya no se le puede escribir.
     if (member) {
-      await notifyUser(target, ctx.guild, 'ban', reason, duration).catch(() => {});
+      await notifyUser(target, ctx.guild, 'ban', reason, duration, ctx.settings).catch(() => {});
     }
 
     try {

@@ -117,9 +117,12 @@ async function runCommand(ctx) {
   try {
     await command.execute(ctx);
 
-    // El contador se acumula en memoria y se vuelca cada minuto en un solo
-    // lote: escribir en la base de datos con cada comando no compensa.
-    if (guild) client.modules.get('usageStats')?.registrar(guild.id);
+    // Los contadores se acumulan en memoria y se vuelcan por lotes: escribir
+    // en la base de datos con cada comando no compensa.
+    if (guild) {
+      client.modules.get('usageStats')?.registrar(guild.id);
+      client.modules.get('dailyStats')?.registrar(guild.id, 'commands');
+    }
 
     return true;
   } catch (err) {

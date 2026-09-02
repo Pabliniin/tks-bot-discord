@@ -45,11 +45,23 @@
       "en": "Moderation",
       "emoji": "🛡️"
     },
+    "music": {
+      "id": "music",
+      "es": "Música",
+      "en": "Music",
+      "emoji": "🎵"
+    },
     "premium": {
       "id": "premium",
       "es": "Premium",
       "en": "Premium",
       "emoji": "💎"
+    },
+    "giveaway": {
+      "id": "giveaway",
+      "es": "Sorteos",
+      "en": "Giveaways",
+      "emoji": "🎉"
     }
   },
   "MODULES": [
@@ -170,6 +182,30 @@
       "es": "Tickets",
       "en": "Tickets",
       "icon": "🎫",
+      "premium": false,
+      "group": "server"
+    },
+    {
+      "id": "appeals",
+      "es": "Apelaciones",
+      "en": "Appeals",
+      "icon": "⚖️",
+      "premium": false,
+      "group": "protection"
+    },
+    {
+      "id": "music",
+      "es": "Música",
+      "en": "Music",
+      "icon": "🎵",
+      "premium": false,
+      "group": "engagement"
+    },
+    {
+      "id": "counters",
+      "es": "Contadores",
+      "en": "Counters",
+      "icon": "🔢",
       "premium": false,
       "group": "server"
     }
@@ -534,5 +570,5 @@
       "customBot": true
     }
   },
-  "REQUIRED_PERMISSIONS": "1633094616310"
+  "REQUIRED_PERMISSIONS": "1633093676279"
 }
