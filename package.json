@@ -11,6 +11,8 @@
     "bot": "npm run dev --workspace @tkbot/bot",
     "web": "npm run sync:env && npm run dev --workspace @tkbot/web",
     "deploy": "npm run deploy --workspace @tkbot/bot",
+    "deploy:global": "npm run deploy:global --workspace @tkbot/bot",
+    "deploy:clear": "npm run deploy --workspace @tkbot/bot -- --clear",
     "build": "npm run sync:env && npm run build --workspace @tkbot/web",
     "start:bot": "npm run start --workspace @tkbot/bot",
     "start:web": "npm run sync:env && npm run start --workspace @tkbot/web",
