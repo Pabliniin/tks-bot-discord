@@ -70,9 +70,24 @@ cualquiera con la contraseña puede usar tu servidor para transmitir audio.
 En **Advanced** → **Resources**, ponle un límite de **768 MB**. Lavalink es
 Java y sin límite puede acabar comiéndose la RAM del servidor.
 
-### 5. Conectar el bot
+### 5. Mirar en qué puerto ha arrancado
 
-En el servicio `bot`, añade estas tres variables:
+**No te saltes este paso.** Despliega primero el servicio `lavalink`, abre sus
+registros y busca esta línea:
+
+```
+Undertow started on port 2333 (http) with context path '/'
+```
+
+El número que salga ahí es el puerto que tienes que usar en el paso siguiente.
+Si la variable `SERVER_PORT` no se guardó bien, Lavalink arranca en el **8080**
+en lugar del 2333, y entonces hay que usar 8080. Es el fallo más habitual al
+montarlo en Easypanel.
+
+### 6. Conectar el bot
+
+En el servicio `bot`, añade estas tres variables (con **el puerto que viste**
+en el paso anterior):
 
 ```
 LAVALINK_HOST=tks_bot_lavalink:2333
@@ -83,7 +98,7 @@ LAVALINK_SECURE=false
 > El nombre `tks_bot_lavalink` sale de juntar tu proyecto (`tks_bot`) con el
 > nombre del servicio (`lavalink`). Es como Easypanel resuelve la red interna.
 
-### 6. Desplegar
+### 7. Desplegar
 
 Despliega primero `lavalink`, espera a que arranque (Java tarda unos 30-60
 segundos la primera vez) y luego redespliega `bot`.
@@ -210,6 +225,24 @@ redespliega el servicio `bot`.
 **«El servidor de música no responde»**
 Lavalink está apagado o arrancando. Java tarda hasta un minuto la primera vez.
 Mira los registros del servicio `lavalink`.
+
+**Lavalink arranca bien pero el bot no conecta**
+Mira la línea de los registros de Lavalink que dice `Undertow started on port
+XXXX`. Si no dice `2333`, es que la variable `SERVER_PORT` no se guardó en ese
+servicio: Lavalink arranca en el 8080 por defecto. Lo más rápido es no tocar
+Lavalink y ajustar `LAVALINK_HOST` del bot para que apunte a ese puerto
+(`servicio:8080`) en vez de `:2333`. Comprueba también que
+`LAVALINK_PASSWORD` del bot sea idéntica a `LAVALINK_SERVER_PASSWORD` del
+servicio Lavalink, carácter por carácter.
+
+**Conecta pero falla al reproducir de YouTube concretamente**
+Si en los registros de Lavalink sale el aviso *"The default Youtube source is
+now deprecated"*, es esperable que YouTube falle más que las demás fuentes.
+Prueba primero con SoundCloud (`fuente:SoundCloud` en `/play`) para descartar
+que sea un problema de conexión. Si de verdad hace falta YouTube de forma
+fiable, hay que añadir el plugin oficial
+[youtube-source](https://github.com/lavalink-devs/youtube-source), que
+requiere un `application.yml` propio en vez de solo variables de entorno.
 
 **No encuentra nada al buscar**
 Prueba a pegar el enlace directamente. Si con enlace tampoco funciona,

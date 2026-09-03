@@ -58,6 +58,16 @@ const FILTROS = {
 /** Instancia de Shoukaku, o `null` si no hay Lavalink configurado. */
 let shoukaku = null;
 
+/**
+ * Si se llegó a conectar alguna vez.
+ * Sirve para gritar los fallos del principio (configuración mal puesta) y
+ * limitarse a anotar los de después (un corte de red pasajero).
+ */
+let conectadoAlgunaVez = false;
+
+/** Cuántos fallos de conexión se han avisado, para no llenar los registros. */
+let avisosDeFallo = 0;
+
 /** `guildId` → cola de reproducción. */
 const colas = new Map();
 
@@ -112,12 +122,22 @@ function leerConfiguracion() {
 
   if (!host || !password) return null;
 
-  // Se acepta tanto `servidor:2333` como una URL completa.
-  const limpio = host.replace(/^\w+:\/\//, '');
+  /*
+   * Se acepta cualquier forma razonable de escribirlo: `servidor:2333`,
+   * `http://servidor:2333`, con barra al final o sin puerto. Copiar la
+   * dirección de un panel y que falle por una barra sobrante es un mal rato
+   * evitable.
+   */
+  const limpio = host
+    .trim()
+    .replace(/^\w+:\/\//, '')
+    .replace(/\/+$/, '');
+
   const secure = String(process.env.LAVALINK_SECURE || '').toLowerCase() === 'true';
 
   return {
     name: process.env.LAVALINK_NAME || 'principal',
+    // Sin puerto se asume el 2333, que es el de Lavalink por defecto.
     url: limpio.includes(':') ? limpio : `${limpio}:2333`,
     auth: password,
     secure,
@@ -135,7 +155,9 @@ function disponible() {
  * @returns {string}
  */
 function motivoNoDisponible() {
-  if (!leerConfiguracion()) {
+  const configuracion = leerConfiguracion();
+
+  if (!configuracion) {
     return [
       'El sistema de música no está configurado en este bot.',
       '',
@@ -143,10 +165,21 @@ function motivoNoDisponible() {
       'Quien administre el bot tiene las instrucciones en `MUSICA.md`.',
     ].join('\n');
   }
+
+  /*
+   * Con configuración pero sin conexión, se dice a dónde está intentando ir.
+   * Casi siempre el fallo es un puerto o una contraseña que no coinciden, y
+   * ver la dirección exacta ahorra media hora de búsqueda a ciegas.
+   */
   return [
     'El servidor de música no responde ahora mismo.',
     '',
-    'Suele ser que Lavalink esté apagado o reiniciándose. Prueba de nuevo en un minuto.',
+    `Estoy intentando conectar con \`${configuracion.url}\`.`,
+    '',
+    'Si acaba de arrancar, dale un minuto. Si sigue igual, quien administre el bot',
+    'debe comprobar que ese **puerto** sea el mismo en el que escucha Lavalink',
+    '(sale en su registro como «Undertow started on port …») y que la **contraseña**',
+    'coincida con la del servicio.',
   ].join('\n');
 }
 
@@ -530,14 +563,45 @@ module.exports = {
     });
 
     shoukaku.on('ready', (nombre, reanudado) => {
+      conectadoAlgunaVez = true;
       logger.module('music', `Lavalink «${nombre}» conectado${reanudado ? ' (reanudado)' : ''}.`);
     });
 
+    /*
+     * Los fallos de conexión se avisan alto la primera vez. Antes iban a
+     * `debug`, que no se ve en producción, así que un puerto o una contraseña
+     * mal puestos dejaban la música muerta sin ninguna pista en los registros.
+     */
     shoukaku.on('error', (nombre, error) => {
-      logger.debug(`Lavalink «${nombre}»: ${error.message}`);
+      if (conectadoAlgunaVez) {
+        logger.debug(`Lavalink «${nombre}»: ${error.message}`);
+        return;
+      }
+
+      avisosDeFallo += 1;
+      if (avisosDeFallo <= 3) {
+        logger.error(`No se puede conectar con Lavalink en ${configuracion.url}: ${error.message}`);
+
+        if (avisosDeFallo === 1) {
+          logger.error(
+            'Comprueba tres cosas: que el servicio de Lavalink esté encendido, que el PUERTO ' +
+              'de LAVALINK_HOST sea el mismo en el que arranca Lavalink (mira su registro ' +
+              '«Undertow started on port …»), y que LAVALINK_PASSWORD sea idéntica a ' +
+              'LAVALINK_SERVER_PASSWORD.'
+          );
+        }
+      }
     });
 
     shoukaku.on('close', (nombre, codigo) => {
+      // 4001 y 4004 son «credenciales incorrectas» en el protocolo de Lavalink.
+      if (!conectadoAlgunaVez && (codigo === 4001 || codigo === 4004)) {
+        logger.error(
+          `Lavalink ha rechazado la conexión (código ${codigo}): la contraseña no coincide. ` +
+            'LAVALINK_PASSWORD del bot debe ser igual que LAVALINK_SERVER_PASSWORD del servicio.'
+        );
+        return;
+      }
       logger.debug(`Lavalink «${nombre}» desconectado (código ${codigo}).`);
     });
 

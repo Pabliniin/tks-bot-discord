@@ -3,7 +3,7 @@
 const path = require('node:path');
 require('dotenv').config({ path: path.join(__dirname, '..', '..', '..', '.env') });
 
-const { connect } = require('@tkbot/shared');
+const { connect, repararIndicesTTL, models } = require('@tkbot/shared');
 const TKClient = require('./structures/TKClient');
 const logger = require('./utils/logger');
 const startApi = require('./api/server');
@@ -27,6 +27,23 @@ async function main() {
   logger.info('Conectando a MongoDB...');
   await connect(process.env.MONGODB_URI);
   logger.ready('MongoDB conectado');
+
+  /*
+   * Repara los índices de caducidad si se quedaron mal de una versión
+   * anterior. MongoDB no deja cambiar las opciones de un índice existente, así
+   * que uno creado sin caducidad se queda así para siempre y su colección
+   * crece sin parar. No corta el arranque si falla.
+   */
+  const indices = await repararIndicesTTL(models, (mensaje) => logger.warn(mensaje)).catch(
+    (err) => {
+      logger.debug(`No se pudieron revisar los índices: ${err.message}`);
+      return null;
+    }
+  );
+
+  if (indices?.fallos.length > 0) {
+    logger.debug(`Índices con problemas: ${indices.fallos.join(' · ')}`);
+  }
 
   const client = new TKClient();
 

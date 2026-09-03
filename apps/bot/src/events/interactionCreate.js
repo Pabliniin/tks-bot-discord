@@ -30,11 +30,19 @@ module.exports = {
   name: Events.InteractionCreate,
 
   async execute(client, interaction) {
-    // La configuración solo existe dentro de un servidor.
+    /*
+     * La configuración solo existe dentro de un servidor.
+     *
+     * Se pide con límite de tiempo: Discord da la interacción por perdida a
+     * los 3 segundos y enseña «La aplicación no ha respondido». Si MongoDB
+     * está lento o caído, esperar aquí se comería toda la ventana y el bot
+     * parecería roto sin dar ninguna pista. Con el límite, se responde igual
+     * usando los valores por defecto y el fallo queda escrito en los registros.
+     */
     let settings = null;
     if (interaction.guild) {
       try {
-        settings = await client.settings.get(interaction.guild.id);
+        settings = await client.settings.getParaInteraccion(interaction.guild.id);
       } catch (err) {
         logger.error('No se pudo cargar la configuración:', err.message);
       }

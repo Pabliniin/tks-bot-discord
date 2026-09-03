@@ -151,6 +151,63 @@ test('explica qué falta en vez de dar un error genérico', () => {
   assert.match(motivo, /MUSICA\.md/);
 });
 
+test('configurado pero sin conexión, dice a qué dirección intenta ir', () => {
+  // Es el fallo real más común: puerto o contraseña que no coinciden. Ver la
+  // dirección exacta en Discord ahorra buscar a ciegas en el servidor.
+  const previoHost = process.env.LAVALINK_HOST;
+  const previoPass = process.env.LAVALINK_PASSWORD;
+
+  process.env.LAVALINK_HOST = 'tks_bot_lavalink:8080';
+  process.env.LAVALINK_PASSWORD = 'secreta';
+
+  try {
+    const motivo = music.motivoNoDisponible();
+
+    assert.match(motivo, /tks_bot_lavalink:8080/);
+    assert.match(motivo, /puerto/i);
+    assert.match(motivo, /contraseña/i);
+  } finally {
+    if (previoHost === undefined) delete process.env.LAVALINK_HOST;
+    else process.env.LAVALINK_HOST = previoHost;
+    if (previoPass === undefined) delete process.env.LAVALINK_PASSWORD;
+    else process.env.LAVALINK_PASSWORD = previoPass;
+  }
+});
+
+test('la dirección de Lavalink se entiende escrita de varias formas', () => {
+  const previoHost = process.env.LAVALINK_HOST;
+  const previoPass = process.env.LAVALINK_PASSWORD;
+  process.env.LAVALINK_PASSWORD = 'secreta';
+
+  const casos = [
+    ['lavalink:2333', 'lavalink:2333'],
+    // Sin puerto se asume el de Lavalink por defecto.
+    ['lavalink', 'lavalink:2333'],
+    // Copiado de un panel, con protocolo y barra final.
+    ['http://lavalink:8080/', 'lavalink:8080'],
+    ['  lavalink:8080  ', 'lavalink:8080'],
+  ];
+
+  try {
+    for (const [entrada, esperado] of casos) {
+      process.env.LAVALINK_HOST = entrada;
+      const motivo = music.motivoNoDisponible();
+
+      // Comparación literal: la dirección lleva `:` y `.`, que en una
+      // expresión regular habría que escapar sin ganar nada a cambio.
+      assert.ok(
+        motivo.includes(esperado),
+        `«${entrada}» debería resolverse a «${esperado}», pero el mensaje decía: ${motivo}`
+      );
+    }
+  } finally {
+    if (previoHost === undefined) delete process.env.LAVALINK_HOST;
+    else process.env.LAVALINK_HOST = previoHost;
+    if (previoPass === undefined) delete process.env.LAVALINK_PASSWORD;
+    else process.env.LAVALINK_PASSWORD = previoPass;
+  }
+});
+
 test('los modos de repetición están todos traducidos', () => {
   assert.deepEqual(Object.keys(music.BUCLES), ['off', 'track', 'queue']);
   for (const nombre of Object.values(music.BUCLES)) {

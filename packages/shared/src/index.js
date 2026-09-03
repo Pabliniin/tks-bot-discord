@@ -10,6 +10,7 @@ const templates = require('./templates');
 const automodSimulator = require('./automodSimulator');
 const plans = require('./plans');
 const giveaways = require('./giveaways');
+const repairIndexes = require('./repairIndexes');
 
 const Guild = require('./models/Guild');
 const Member = require('./models/Member');
@@ -57,6 +58,7 @@ module.exports = {
   ...automodSimulator,
   ...plans,
   ...giveaways,
+  ...repairIndexes,
   models: {
     Guild,
     Member,

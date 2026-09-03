@@ -17,10 +17,34 @@ export default function CommandsBrowser({ commands, prefix = '-' }) {
   const [query, setQuery] = useState('');
   const [openCommand, setOpenCommand] = useState(null);
 
-  const categories = [
-    { id: 'all', label: 'Todo', emoji: '📋' },
-    ...Object.values(COMMAND_CATEGORIES).map((c) => ({ id: c.id, label: c.es, emoji: c.emoji })),
-  ];
+  /*
+   * Las categorías conocidas salen de las constantes, pero el bot puede tener
+   * comandos de una categoría más nueva que esta página (pasa justo después de
+   * desplegar el bot y antes de desplegar la web). Sin esto, esos comandos se
+   * contaban en «Todo» pero no aparecían en ninguna pestaña: quedaban
+   * invisibles y parecía que faltaban.
+   */
+  const categories = useMemo(() => {
+    const conocidas = Object.values(COMMAND_CATEGORIES).map((c) => ({
+      id: c.id,
+      label: c.es,
+      emoji: c.emoji,
+    }));
+
+    const idsConocidos = new Set(conocidas.map((c) => c.id));
+
+    const desconocidas = [...new Set(commands.map((c) => c.category))]
+      .filter((id) => id && !idsConocidos.has(id))
+      .map((id) => ({
+        id,
+        // Sin traducción disponible se enseña el identificador tal cual, que
+        // es mejor que esconder el comando.
+        label: id.charAt(0).toUpperCase() + id.slice(1),
+        emoji: '🧩',
+      }));
+
+    return [{ id: 'all', label: 'Todo', emoji: '📋' }, ...conocidas, ...desconocidas];
+  }, [commands]);
 
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase();

@@ -33,8 +33,20 @@ async function connect(uri = process.env.MONGODB_URI) {
     cached.promise = mongoose
       .connect(uri, {
         maxPoolSize: 20,
-        serverSelectionTimeoutMS: 15000,
+        /*
+         * Antes eran 15 segundos, pero Discord descarta una interacción a los
+         * 3: con el valor viejo, una base de datos inaccesible dejaba al bot
+         * mudo ante cualquier comando de barra, sin error visible. Ahora falla
+         * pronto y quien llama puede responder con los valores por defecto.
+         */
+        serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 45000,
+        /*
+         * Sin esto, mongoose encola las consultas cuando no hay conexión y las
+         * deja esperando 10 segundos antes de fallar, que es justo el mismo
+         * problema por otra vía.
+         */
+        bufferTimeoutMS: 3000,
       })
       .then((m) => {
         cached.conn = m;
