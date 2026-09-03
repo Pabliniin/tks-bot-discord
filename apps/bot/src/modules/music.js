@@ -219,7 +219,11 @@ function esConsultaDeYoutube(consulta, fuente, esUrl) {
 }
 
 /**
- * Pide al resolutor de yt-dlp la URL directa del audio.
+ * Pide al resolutor de yt-dlp que descargue el audio y devuelva dónde lo
+ * dejó — no la URL directa de YouTube: eso se probó antes y Lavalink no
+ * siempre sabía qué hacer con lo que devolvía Google (protocolos raros,
+ * formatos que no esperaba). Un archivo ya descargado y servido por HTTP
+ * normal es algo que Lavalink sabe cargar siempre.
  *
  * Devuelve `null` cuando no hay resolutor configurado o la llamada falla:
  * en ambos casos `buscar()` cae de vuelta al plugin de Lavalink, igual que
@@ -239,7 +243,10 @@ async function buscarEnYoutube(node, consulta, esUrl) {
   try {
     respuesta = await fetch(`${configuracion.url}/resolve?${parametros}`, {
       headers: { 'X-Api-Key': configuracion.token },
-      signal: AbortSignal.timeout(25_000),
+      // Ya no es una simple búsqueda: el resolutor descarga el audio entero
+      // antes de responder, y una lista puede traer hasta 25 canciones
+      // seguidas. 5 minutos cubre de sobra hasta el peor caso.
+      signal: AbortSignal.timeout(5 * 60_000),
     });
   } catch (err) {
     logger.debug(`Resolutor de YouTube inalcanzable: ${err.message}`);
@@ -257,22 +264,23 @@ async function buscarEnYoutube(node, consulta, esUrl) {
     return null;
   }
 
-  // La URL directa la resuelve Lavalink como una fuente HTTP normal: nunca
-  // habla con YouTube para estas pistas, solo descarga el archivo final.
+  // El archivo ya descargado lo sirve el propio resolutor por HTTP normal;
+  // Lavalink lo carga como cualquier otro archivo, sin hablar con YouTube.
   const tracks = [];
   for (const item of datos.tracks) {
-    if (!item.url) continue;
+    if (!item.archivo) continue;
+    const urlArchivo = `${configuracion.url}/files/${item.archivo}`;
 
     let resuelto;
     try {
-      resuelto = await node.rest.resolve(item.url);
+      resuelto = await node.rest.resolve(urlArchivo);
     } catch {
       continue;
     }
     if (resuelto?.loadType !== LoadType.TRACK) continue;
 
     const track = resuelto.data;
-    // Los metadatos de una URL HTTP suelta son pobres o inexistentes: se
+    // Los metadatos de un archivo suelto son pobres o inexistentes: se
     // sustituyen por los que ya sacó yt-dlp, que son los buenos de verdad.
     track.info.title = item.title || track.info.title;
     track.info.author = item.author || track.info.author;

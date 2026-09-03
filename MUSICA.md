@@ -120,9 +120,13 @@ IP de tu servidor como sospechosa. No hay variable de entorno que lo arregle.
 
 La solución que sí ayuda: un servicio aparte con **yt-dlp**, que se actualiza
 mucho más a menudo que el plugin de Lavalink persiguiendo cada cambio de
-YouTube. El bot le pide a este servicio la URL directa del audio y se la pasa
-a Lavalink como si fuera un archivo HTTP cualquiera — Lavalink nunca vuelve a
-hablar con YouTube para esas canciones.
+YouTube. Este servicio **descarga la canción entera** y la deja servida como
+un archivo normal; el bot le pasa esa dirección a Lavalink, que la carga como
+cualquier archivo HTTP — Lavalink nunca vuelve a hablar con YouTube para esas
+canciones, ni tiene que lidiar con las rarezas de sus enlaces (eso se probó
+primero pasándole a Lavalink el enlace directo de Google, y fallaba de formas
+distintas cada vez; descargar el archivo entero es más lento pero mucho más
+fiable).
 
 **No es una garantía al 100%.** Si el bloqueo fuera por reputación pura de la
 IP (y no por el cliente que la pide), yt-dlp tropezaría con lo mismo tarde o

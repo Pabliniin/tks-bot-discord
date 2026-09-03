@@ -2,37 +2,44 @@
 
 Por que existe: Lavalink no puede tocar YouTube de forma fiable desde este
 servidor. El plugin oficial (dev.lavalink.youtube) falla con "This video
-requires login" en todos sus clientes (MUSIC, ANDROID_VR, WEB, WEBEMBEDDED) en
-CUALQUIER video, lo que apunta a que YouTube marco la IP del VPS como
-sospechosa, no a un fallo de configuracion. yt-dlp se actualiza mucho mas a
-menudo persiguiendo cada cambio de YouTube, asi que tiene mejores
-probabilidades de pasar esa comprobacion.
+requires login" en todos sus clientes en CUALQUIER video, lo que apunta a
+que YouTube marco la IP del VPS como sospechosa, no a un fallo de
+configuracion.
 
-Como se usa: este servicio NUNCA le manda audio a nadie. Solo le pide a
-yt-dlp la URL directa del archivo de audio (el CDN de Google, googlevideo.com)
-y se la devuelve al bot. El bot le pasa esa URL a Lavalink como si fuera un
-archivo HTTP cualquiera (la fuente "http", ya activada) — Lavalink nunca habla
-con YouTube directamente para estos tracks.
+Como funciona (importante, es la segunda version de este servicio): NO se le
+pasa a Lavalink la URL directa del CDN de Google. Eso se probo primero y
+fallaba de formas distintas cada vez -- unas veces el formato que yt-dlp
+elegia no era el que Lavalink esperaba, otras la URL firmada de Google traia
+protocolos (HLS/DASH) que la fuente HTTP de Lavalink no sabe leer como un
+archivo normal. Demasiadas piezas que tenian que estar de acuerdo a la vez.
 
-Esto NO es una garantia al 100%: hay un archivo de cookies opcional
-(/app/cookies.txt, montado aparte, nunca en el repositorio) de una sesion
-real de YouTube, que hace que las peticiones se vean como las de una persona
-con sesion iniciada en vez de un servidor anonimo. Con eso arregla la
-mayoria de los videos, pero algunos siguen pidiendo "Sign in to confirm
-you're not a bot" por sus propias restricciones (edad, region) aunque haya
-sesion — eso ya no es un problema de configuracion, es el video en concreto.
+Ahora este servicio DESCARGA el audio con yt-dlp a un archivo local y lo
+sirve el mismo por HTTP normal y corriente. Lavalink ya no tiene que
+entenderse con nada de Google: solo descarga un archivo de audio de un
+servidor cualquiera, que es lo que su fuente HTTP hace bien siempre. Cuesta
+unos segundos mas por cancion (hay que descargarla antes de poder sonar),
+pero es muchisimo mas fiable.
+
+Cookies opcionales (/app/cookies.txt, montado aparte en Easypanel, nunca en
+el repositorio): de una sesion real de YouTube, para que las peticiones se
+vean como las de una persona con sesion iniciada en vez de un servidor
+anonimo. Arregla la mayoria de los videos. Esto NO es una garantia al 100%:
+algunos videos (restriccion de edad o de region) siguen pidiendo
+verificacion aunque haya sesion -- eso ya no es un problema de
+configuracion, es el video en concreto.
 """
 
 import asyncio
+import glob
 import logging
 import os
+import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
+import uuid
 
 import yt_dlp
 from fastapi import FastAPI, Header, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("ytresolver")
@@ -40,35 +47,17 @@ log = logging.getLogger("ytresolver")
 API_KEY = os.environ.get("YT_RESOLVER_TOKEN", "")
 MAX_RESULTADOS = 25
 
-# Un solo pool para todas las llamadas a yt-dlp: son bloqueantes (I/O de red
-# sincrono), asi que corren en hilos aparte para no parar el bucle de eventos
-# de FastAPI. 4 workers es a proposito poco: mas llamadas simultaneas a
-# YouTube desde la misma IP solo aumentan el riesgo de que nos bloqueen mas.
-POOL = ThreadPoolExecutor(max_workers=4)
+CACHE_DIR = "/app/cache"
+os.makedirs(CACHE_DIR, exist_ok=True)
 
-YDL_OPTS_BASE = {
-    "quiet": True,
-    "no_warnings": True,
-    "skip_download": True,
-    # Sin "format" ni "player_client" fijados a mano: cada intento de
-    # "ayudar" fijando uno de los dos ha ido A PEOR en pruebas reales, no a
-    # mejor (ver commits anteriores). yt-dlp decide todo eso él solo y esa
-    # lógica la actualiza con cada versión persiguiendo los cambios de
-    # YouTube -- confiar en su criterio dio mejor resultado que cualquier
-    # selector que hemos probado a mano.
-    "socket_timeout": 20,
-}
+# Cuanto se guarda un archivo descargado antes de borrarlo solo. De sobra
+# para que le de tiempo a sonar (canción + lo que tarde en llegarle su turno
+# en la cola), sin dejar que el disco crezca sin límite.
+CACHE_TTL_SEGUNDOS = 30 * 60
 
-# "Sign in to confirm you're not a bot": ni el plugin de Lavalink ni yt-dlp
-# sin más pasan este bloqueo desde la IP del VPS — es un bloqueo por
-# reputación de la IP, no por el cliente usado. Con cookies de una sesión
-# real de YouTube, las peticiones se ven como las de una persona con sesión
-# iniciada en vez de un servidor anónimo. El archivo se monta aparte (no va
-# en el repositorio ni en variables de entorno) porque son credenciales de
-# una cuenta de verdad.
 COOKIES_PATH = "/app/cookies.txt"
-if os.path.isfile(COOKIES_PATH):
-    YDL_OPTS_BASE["cookiefile"] = COOKIES_PATH
+TIENE_COOKIES = os.path.isfile(COOKIES_PATH)
+if TIENE_COOKIES:
     log.info("Usando cookies de sesión en %s", COOKIES_PATH)
 else:
     log.info("Sin archivo de cookies (%s): se prueba sin sesión iniciada.", COOKIES_PATH)
@@ -76,143 +65,134 @@ else:
 app = FastAPI()
 
 
-def _extraer(objetivo: str, plano: bool = False) -> dict:
-    opciones = dict(YDL_OPTS_BASE)
-    if plano:
-        opciones["extract_flat"] = "in_playlist"
-    with yt_dlp.YoutubeDL(opciones) as ydl:
-        return ydl.extract_info(objetivo, download=False)
+def _limpiar_cache_periodicamente():
+    while True:
+        ahora = time.time()
+        for ruta in glob.glob(os.path.join(CACHE_DIR, "*")):
+            try:
+                if ahora - os.path.getmtime(ruta) > CACHE_TTL_SEGUNDOS:
+                    os.remove(ruta)
+            except OSError:
+                pass
+        time.sleep(300)
 
 
-def _es_stub_plano(entrada: dict) -> bool:
-    """Una entrada de `extract_flat` trae el id y poco mas: hay que resolverla entera."""
-    return entrada.get("_type") == "url" or "formats" not in entrada
+threading.Thread(target=_limpiar_cache_periodicamente, daemon=True).start()
 
 
-def _elegir_formato(formatos: list) -> Optional[dict]:
-    """
-    Se prefiere audio-only, servido como archivo directo (no HLS/DASH
-    fragmentado, que Lavalink no sabe leer como una URL HTTP normal), y en
-    los contenedores que Lavalink sabe decodificar seguro: m4a (AAC) o webm
-    (Opus). Si no hay ninguno así, se cae a cualquier formato con audio,
-    aunque sea de peor calidad, antes que fallar del todo.
-    """
-    audio = [
-        f for f in formatos
-        if f.get("acodec") not in (None, "none") and f.get("vcodec") in (None, "none")
-    ]
-
-    directos = [
-        f for f in audio
-        if "m3u8" not in (f.get("protocol") or "") and "dash" not in (f.get("protocol") or "")
-    ]
-
-    buenos = [f for f in directos if f.get("ext") in ("m4a", "webm")]
-
-    for candidatos in (buenos, directos, audio, formatos):
-        if candidatos:
-            # abr (bitrate de audio) más alto primero; los que no lo traen, al final.
-            return max(candidatos, key=lambda f: f.get("abr") or 0)
-    return None
+def _opciones_yt_dlp(identificador: str) -> dict:
+    opciones = {
+        "quiet": True,
+        "no_warnings": True,
+        "outtmpl": os.path.join(CACHE_DIR, f"{identificador}.%(ext)s"),
+        # Audio-only si existe (más rápido de bajar); si no, el mejor que haya.
+        # Sin restringir contenedor ni protocolo: al DESCARGAR el archivo
+        # entero en vez de pasarle la URL a otro sistema, ya no importa si es
+        # HLS/DASH o qué contenedor trae -- yt-dlp lo junta él solo y lo dueja
+        # como un archivo normal en disco.
+        "format": "bestaudio/best",
+        "socket_timeout": 20,
+        "noplaylist": True,
+    }
+    if TIENE_COOKIES:
+        opciones["cookiefile"] = COOKIES_PATH
+    return opciones
 
 
-def _pista_desde_info(info: dict) -> Optional[dict]:
+def _descargar(identificador: str, nombre_base: str) -> dict:
+    """Descarga un video/pista a CACHE_DIR y devuelve sus metadatos + nombre de archivo."""
+    with yt_dlp.YoutubeDL(_opciones_yt_dlp(nombre_base)) as ydl:
+        info = ydl.extract_info(identificador, download=True)
+
     if info.get("is_live"):
-        return None
+        raise ValueError("Es un directo, no se puede descargar.")
 
-    elegido = None
-    url = info.get("url")
-    if not url:
-        elegido = _elegir_formato(info.get("formats") or [])
-        url = elegido.get("url") if elegido else None
+    coincidencias = glob.glob(os.path.join(CACHE_DIR, f"{nombre_base}.*"))
+    if not coincidencias:
+        raise RuntimeError("yt-dlp no dejó ningún archivo descargado.")
 
-    if not url:
-        return None
-
+    archivo = os.path.basename(coincidencias[0])
     return {
-        "url": url,
+        "archivo": archivo,
         "title": info.get("title") or "Desconocido",
         "author": info.get("uploader") or info.get("channel") or "Desconocido",
         "durationMs": int((info.get("duration") or 0) * 1000),
         "thumbnail": info.get("thumbnail"),
         "sourceUrl": info.get("webpage_url") or info.get("original_url"),
-        # No sensible, solo para depurar sin adivinar: qué formato se eligió.
-        "formatoDebug": {
-            "ext": (elegido or {}).get("ext"),
-            "protocol": (elegido or {}).get("protocol"),
-            "acodec": (elegido or {}).get("acodec"),
-            "abr": (elegido or {}).get("abr"),
-        } if elegido else None,
     }
 
 
-def _resolver_entrada(entrada: dict) -> Optional[dict]:
-    if not _es_stub_plano(entrada):
-        pista = _pista_desde_info(entrada)
-        if pista:
-            return pista
+def _listar_entradas_playlist(objetivo: str, limite: int) -> tuple:
+    """Para una URL de lista: nombres/ids sin descargar nada todavía (rápido)."""
+    opciones = dict(_opciones_yt_dlp("_"), extract_flat="in_playlist")
+    with yt_dlp.YoutubeDL(opciones) as ydl:
+        info = ydl.extract_info(objetivo, download=False)
 
-    identificador = entrada.get("url") or entrada.get("id")
-    if not identificador:
-        return None
+    entradas = info.get("entries")
+    if entradas is None:
+        return [objetivo], None
 
-    try:
-        return _pista_desde_info(_extraer(identificador))
-    except Exception as err:  # noqa: BLE001 - se registra y se descarta esta pista
-        log.warning("No se pudo resolver %s: %s", identificador, err)
-        return None
+    identificadores = [e.get("url") or e.get("id") for e in entradas if e]
+    identificadores = [i for i in identificadores if i][:limite]
+    return identificadores, info.get("title")
 
 
 def _resolver_sync(consulta: str, es_busqueda: bool, limite: int) -> dict:
     objetivo = f"ytsearch{max(1, limite)}:{consulta}" if es_busqueda else consulta
 
     try:
-        # Una busqueda por texto ya devuelve cada resultado resuelto del
-        # todo; una URL puede ser una lista larga, asi que ahi se pide plano
-        # primero (rapido) y solo se resuelve entera cada pista que se vaya
-        # a usar de verdad.
-        info = _extraer(objetivo, plano=not es_busqueda)
+        if es_busqueda:
+            identificadores, nombre_lista = [objetivo], None
+        else:
+            identificadores, nombre_lista = _listar_entradas_playlist(objetivo, limite)
     except Exception as err:  # noqa: BLE001
         return {"error": str(err), "tracks": [], "playlist": None}
 
-    entradas = info.get("entries")
-    if entradas is None:
-        pista = _pista_desde_info(info)
-        if not pista:
-            n = len(info.get("formats") or [])
-            return {
-                "tracks": [],
-                "playlist": None,
-                "error": f"Sin audio disponible (¿directo en vivo?). {n} formato(s) recibidos.",
-            }
-        return {"tracks": [pista], "playlist": None, "error": None}
-
-    entradas = [e for e in entradas if e][:limite]
-    if not entradas:
-        return {"tracks": [], "playlist": None, "error": "La lista está vacía."}
+    if not identificadores:
+        return {"tracks": [], "playlist": None, "error": "No se ha encontrado nada."}
 
     # Una a una, con una pausa corta entre cada una -- no en paralelo. Varias
-    # peticiones de golpe a YouTube con la misma sesión de cookies es
-    # precisamente el patrón que dispara su propio bloqueo por bots; tarda
-    # más, pero es lo que de verdad ha funcionado en pruebas reales.
+    # descargas de golpe con la misma sesión de cookies es precisamente el
+    # patrón que YouTube vigila para bloquear por bot; tarda más, pero es lo
+    # que de verdad ha dado mejor resultado en pruebas reales.
     tracks = []
-    for i, entrada in enumerate(entradas):
+    for i, identificador in enumerate(identificadores):
         if i > 0:
             time.sleep(0.6)
-        pista = _resolver_entrada(entrada)
-        if pista:
-            tracks.append(pista)
+        nombre_base = uuid.uuid4().hex
+        try:
+            datos = _descargar(identificador, nombre_base)
+        except Exception as err:  # noqa: BLE001 - se registra y se descarta esta pista
+            log.warning("No se pudo descargar %s: %s", identificador, err)
+            continue
+        tracks.append(datos)
 
-    return {
-        "tracks": tracks,
-        "playlist": info.get("title") if not es_busqueda else None,
-        "error": None if tracks else "No se pudo resolver ninguna pista de la lista.",
-    }
+    if not tracks:
+        return {
+            "tracks": [],
+            "playlist": None,
+            "error": "No se pudo descargar ninguna pista (posiblemente bloqueada o privada).",
+        }
+
+    if nombre_lista and len(tracks) > 1:
+        return {"tracks": tracks, "playlist": nombre_lista, "error": None}
+    return {"tracks": [tracks[0]], "playlist": None, "error": None}
 
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/files/{nombre}")
+def servir_archivo(nombre: str):
+    # El nombre siempre es un uuid4().hex generado por este mismo servicio
+    # (ver `_descargar`): no hay entrada de usuario aquí que pudiera escapar
+    # de CACHE_DIR, así que basta con comprobar que exista.
+    ruta = os.path.join(CACHE_DIR, nombre)
+    if not os.path.isfile(ruta) or not os.path.dirname(os.path.abspath(ruta)) == os.path.abspath(CACHE_DIR):
+        raise HTTPException(status_code=404, detail="not found")
+    return FileResponse(ruta)
 
 
 @app.get("/resolve")
@@ -227,9 +207,12 @@ async def resolve(
 
     bucle = asyncio.get_running_loop()
     try:
-        resultado = await bucle.run_in_executor(POOL, _resolver_sync, query, search, limit)
+        resultado = await bucle.run_in_executor(None, _resolver_sync, query, search, limit)
     except Exception as err:  # noqa: BLE001
         log.exception("Fallo resolviendo %r", query)
         return JSONResponse(status_code=500, content={"error": str(err), "tracks": [], "playlist": None})
 
+    # Los "tracks" llevan el nombre del archivo ya descargado; el bot arma la
+    # URL final con su propia base (BASE_URL/files/<archivo>) para no atar
+    # este servicio a saber su propio nombre de host en Easypanel.
     return resultado

@@ -11,6 +11,13 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+# ffmpeg: yt-dlp lo necesita para juntar audio+video cuando el mejor
+# formato disponible no viene ya en un único archivo (pasa con algunos
+# videos). Ahora que este servicio DESCARGA el audio en vez de solo pasar
+# una URL, hace falta de verdad.
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 # yt-dlp se instala SIN fijar version a proposito: en cada reconstruccion de
 # la imagen se coge la ultima, para seguir el ritmo de los cambios que
 # YouTube le hace a sus defensas. Si un dia deja de funcionar, lo primero es
