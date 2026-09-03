@@ -188,6 +188,96 @@ function getCola(guildId) {
   return colas.get(guildId) || null;
 }
 
+/** Lee la configuración del resolutor de YouTube (yt-dlp), si está activo. */
+function leerConfiguracionYoutube() {
+  const url = process.env.YT_RESOLVER_URL;
+  const token = process.env.YT_RESOLVER_TOKEN;
+  if (!url || !token) return null;
+  return { url: url.trim().replace(/\/+$/, ''), token };
+}
+
+const RE_YOUTUBE = /(?:youtube\.com|youtu\.be)/i;
+
+/** Tope de pistas que se piden de una lista de YouTube: coincide con el del resolutor. */
+const MAX_LISTA_YOUTUBE = 25;
+
+/** ¿Esta consulta va a acabar pidiéndole algo a YouTube? */
+function esConsultaDeYoutube(consulta, fuente, esUrl) {
+  return esUrl ? RE_YOUTUBE.test(consulta) : fuente.startsWith('yt');
+}
+
+/**
+ * Pide al resolutor de yt-dlp la URL directa del audio.
+ *
+ * Devuelve `null` cuando no hay resolutor configurado o la llamada falla:
+ * en ambos casos `buscar()` cae de vuelta al plugin de Lavalink, igual que
+ * si esta función no existiera.
+ */
+async function buscarEnYoutube(node, consulta, esUrl) {
+  const configuracion = leerConfiguracionYoutube();
+  if (!configuracion) return null;
+
+  const parametros = new URLSearchParams({
+    query: consulta.trim(),
+    limit: String(esUrl ? MAX_LISTA_YOUTUBE : 1),
+  });
+  if (!esUrl) parametros.set('search', 'true');
+
+  let respuesta;
+  try {
+    respuesta = await fetch(`${configuracion.url}/resolve?${parametros}`, {
+      headers: { 'X-Api-Key': configuracion.token },
+      signal: AbortSignal.timeout(25_000),
+    });
+  } catch (err) {
+    logger.debug(`Resolutor de YouTube inalcanzable: ${err.message}`);
+    return null;
+  }
+
+  if (!respuesta.ok) {
+    logger.debug(`Resolutor de YouTube respondió ${respuesta.status}`);
+    return null;
+  }
+
+  const datos = await respuesta.json().catch(() => null);
+  if (!datos || datos.error || !Array.isArray(datos.tracks) || datos.tracks.length === 0) {
+    if (datos?.error) logger.debug(`Resolutor de YouTube: ${datos.error}`);
+    return null;
+  }
+
+  // La URL directa la resuelve Lavalink como una fuente HTTP normal: nunca
+  // habla con YouTube para estas pistas, solo descarga el archivo final.
+  const tracks = [];
+  for (const item of datos.tracks) {
+    if (!item.url) continue;
+
+    let resuelto;
+    try {
+      resuelto = await node.rest.resolve(item.url);
+    } catch {
+      continue;
+    }
+    if (resuelto?.loadType !== LoadType.TRACK) continue;
+
+    const track = resuelto.data;
+    // Los metadatos de una URL HTTP suelta son pobres o inexistentes: se
+    // sustituyen por los que ya sacó yt-dlp, que son los buenos de verdad.
+    track.info.title = item.title || track.info.title;
+    track.info.author = item.author || track.info.author;
+    if (item.durationMs) track.info.length = item.durationMs;
+    if (item.sourceUrl) track.info.uri = item.sourceUrl;
+    if (item.thumbnail) track.info.artworkUrl = item.thumbnail;
+    tracks.push(track);
+  }
+
+  if (tracks.length === 0) return null;
+
+  if (datos.playlist && tracks.length > 1) {
+    return { tipo: 'playlist', tracks, playlist: datos.playlist, error: null };
+  }
+  return { tipo: 'track', tracks: [tracks[0]], playlist: null, error: null };
+}
+
 /**
  * Busca canciones.
  *
@@ -201,6 +291,19 @@ async function buscar(consulta, fuente = 'ytsearch') {
 
   // Una URL se pasa tal cual; un texto se convierte en búsqueda.
   const esUrl = /^https?:\/\//i.test(consulta.trim());
+
+  /*
+   * El plugin de YouTube de Lavalink no es fiable desde este servidor (ver
+   * MUSICA.md): antes de pedírselo a él, se prueba con el resolutor de
+   * yt-dlp, que se actualiza mucho más a menudo. Si no está configurado o
+   * falla, se sigue exactamente como antes.
+   */
+  const esYoutube = esConsultaDeYoutube(consulta, fuente, esUrl);
+  if (esYoutube) {
+    const viaYoutube = await buscarEnYoutube(node, consulta, esUrl);
+    if (viaYoutube) return viaYoutube;
+  }
+
   const identificador = esUrl ? consulta.trim() : `${fuente}:${consulta.trim()}`;
 
   let resultado;
@@ -525,6 +628,8 @@ module.exports = {
 
   // Operaciones.
   buscar,
+  esConsultaDeYoutube,
+  leerConfiguracionYoutube,
   conectar,
   siguiente,
   destruir,

@@ -111,6 +111,64 @@ MUSIC  Lavalink «principal» conectado.
 
 ---
 
+## YouTube falla con «This video requires login»: el resolutor de yt-dlp
+
+Con Lavalink solo (incluso con el plugin oficial `dev.lavalink.youtube`
+instalado), YouTube puede fallar en **todas** las canciones, no solo en
+algunas. Eso no es un fallo de configuración: es que YouTube ha marcado la
+IP de tu servidor como sospechosa. No hay variable de entorno que lo arregle.
+
+La solución que sí ayuda: un servicio aparte con **yt-dlp**, que se actualiza
+mucho más a menudo que el plugin de Lavalink persiguiendo cada cambio de
+YouTube. El bot le pide a este servicio la URL directa del audio y se la pasa
+a Lavalink como si fuera un archivo HTTP cualquiera — Lavalink nunca vuelve a
+hablar con YouTube para esas canciones.
+
+**No es una garantía al 100%.** Si el bloqueo fuera por reputación pura de la
+IP (y no por el cliente que la pide), yt-dlp tropezaría con lo mismo tarde o
+temprano. Es la opción con mejores probabilidades sin depender de una cuenta
+de Google ni de infraestructura de terceros, no una promesa.
+
+### 1. Crear el servicio en Easypanel
+
+1. **+ Service** → **App**
+2. Nombre: `ytresolver`
+3. En **Source**, elige tu repositorio de GitHub (el mismo que usan `bot` y
+   `web`)
+4. **Dockerfile Path**: `apps/ytresolver/Dockerfile`
+
+### 2. Variable de entorno
+
+```
+YT_RESOLVER_TOKEN=pon_aqui_una_contraseña_larga
+```
+
+Genera la contraseña igual que las demás:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
+```
+
+**No le pongas dominio**, por lo mismo que a Lavalink: solo lo debe alcanzar
+el bot por la red interna.
+
+### 3. Conectar el bot
+
+En el servicio `bot`, añade:
+
+```
+YT_RESOLVER_URL=http://tks_bot_ytresolver:8000
+YT_RESOLVER_TOKEN=la_misma_contraseña_de_arriba
+```
+
+Despliega primero `ytresolver`, espera a que arranque (unos segundos, no es
+Java) y luego redespliega `bot`.
+
+Sin estas dos variables, YouTube sigue pasando por el plugin de Lavalink de
+siempre — este servicio es opcional y el bot funciona igual sin él.
+
+---
+
 ## Opción B: Todo con docker-compose
 
 Si usas `docker-compose.yml`, Lavalink ya viene incluido. Solo tienes que

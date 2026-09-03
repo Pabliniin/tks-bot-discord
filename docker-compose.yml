@@ -54,6 +54,27 @@ services:
       retries: 5
       start_period: 60s
 
+  # ── Resolutor de YouTube (yt-dlp) ───────────────────────────
+  #
+  # Opcional. Sin esto, YouTube pasa directo por el plugin de Lavalink (que
+  # puede estar bloqueado según la IP del servidor — ver MUSICA.md). Con
+  # esto, el bot le pide primero la URL directa del audio a yt-dlp, que se
+  # actualiza mucho más a menudo persiguiendo los cambios de YouTube.
+  ytresolver:
+    build:
+      context: .
+      dockerfile: apps/ytresolver/Dockerfile
+    restart: unless-stopped
+    environment:
+      YT_RESOLVER_TOKEN: ${YT_RESOLVER_TOKEN:-cambia_esta_contrasena}
+    # Sin puertos publicados: solo lo alcanza el bot por la red interna.
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
   # ── Bot de Discord ─────────────────────────────────────────
   bot:
     build:
@@ -80,6 +101,10 @@ services:
       LAVALINK_HOST: lavalink:2333
       LAVALINK_PASSWORD: ${LAVALINK_PASSWORD:-cambia_esta_contrasena}
       LAVALINK_SECURE: 'false'
+      # `ytresolver` es el nombre del servicio de arriba. Si no se define,
+      # YouTube pasa directo por el plugin de Lavalink, como antes.
+      YT_RESOLVER_URL: http://ytresolver:8000
+      YT_RESOLVER_TOKEN: ${YT_RESOLVER_TOKEN:-cambia_esta_contrasena}
     # Tampoco se publica el 3001: la API nunca debe salir a internet.
 
   # ── Panel web ──────────────────────────────────────────────
