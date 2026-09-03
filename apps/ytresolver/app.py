@@ -46,17 +46,19 @@ YDL_OPTS_BASE = {
     "quiet": True,
     "no_warnings": True,
     "skip_download": True,
-    # Sin "format": aquí no se le pide a yt-dlp que elija un formato — eso
-    # hace que `extract_info` falle entera con "Requested format is not
-    # available" en cuanto su selector interno no encuentra nada que encaje
-    # (nos pasó con "bestaudio/best"). Se extrae SIEMPRE la lista completa
-    # de formatos, sin condiciones, y el formato se elige a mano en
-    # `_pista_desde_info`: así, si un video no trae audio-only, cae a
-    # cualquier formato con audio en vez de fallar de golpe.
+    # "all": no dejar SIN "format" no basta -- yt-dlp aplica un selector por
+    # defecto igualmente (algo como "bestvideo+bestaudio/best") aunque no se
+    # indique nada, y ese selector puede no encajar con lo que ofrezca un
+    # video en concreto ("Requested format is not available", nos pasó en
+    # pruebas reales incluso sin fijar "format" nosotros). "all" selecciona
+    # cualquier formato que exista, así que solo falla si no hay ninguno de
+    # verdad. El formato final se elige a mano en `_pista_desde_info`, que ya
+    # recorre `info['formats']` buscando uno con audio.
     #
-    # Tampoco se fija "player_client" a mano: yt-dlp decide qué clientes
-    # probar y esa lista la actualizan con cada versión persiguiendo los
-    # cambios de YouTube; fijarla nosotros solo puede quedarse anticuada.
+    # Tampoco se fija "player_client" a mano (salvo con cookies, más abajo):
+    # yt-dlp decide qué clientes probar y esa lista la actualizan con cada
+    # versión persiguiendo los cambios de YouTube.
+    "format": "all",
     "socket_timeout": 20,
 }
 
