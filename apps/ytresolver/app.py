@@ -70,7 +70,12 @@ YDL_OPTS_BASE = {
 COOKIES_PATH = "/app/cookies.txt"
 if os.path.isfile(COOKIES_PATH):
     YDL_OPTS_BASE["cookiefile"] = COOKIES_PATH
-    log.info("Usando cookies de sesión en %s", COOKIES_PATH)
+    # Los clientes "android"/"ios" autentican con una clave de la app móvil,
+    # no con cookies: si yt-dlp prueba esos primero y fallan (nos pasó en
+    # pruebas reales, incluso con cookies puestas), nunca llega a usarlas.
+    # Solo "web" lee la cookiejar, así que con cookies se fuerza ese.
+    YDL_OPTS_BASE["extractor_args"] = {"youtube": {"player_client": ["web"]}}
+    log.info("Usando cookies de sesión en %s (cliente forzado a «web»)", COOKIES_PATH)
 else:
     log.info("Sin archivo de cookies (%s): se prueba sin sesión iniciada.", COOKIES_PATH)
 
