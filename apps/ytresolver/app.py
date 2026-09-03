@@ -46,9 +46,11 @@ YDL_OPTS_BASE = {
     "quiet": True,
     "no_warnings": True,
     "skip_download": True,
-    # Formatos DASH/HLS (protocolo m3u8) no los sabe servir Lavalink como
-    # archivo HTTP normal; se descartan y se pide el mejor progresivo.
-    "format": "bestaudio[protocol!*=m3u8]/bestaudio",
+    # "bestaudio" a secas: forzar solo progresivo (excluir m3u8/HLS) dejaba
+    # sin formato disponible varios videos, porque YouTube ahora sirve el
+    # audio de algunos solo por HLS. Lavalink sabe leer manifiestos m3u8
+    # igual que un archivo HTTP normal, así que no hace falta filtrarlos.
+    "format": "bestaudio/best",
     # El cliente "web" es el que YouTube vigila mas de cerca. "android" e
     # "ios" simulan la app movil y en la practica tropiezan menos con el
     # "This video requires login" que vimos con el plugin de Lavalink.
