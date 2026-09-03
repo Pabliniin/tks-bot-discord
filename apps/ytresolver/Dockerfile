@@ -20,9 +20,10 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 COPY apps/ytresolver/app.py ./app.py
 
-RUN useradd --no-create-home --shell /usr/sbin/nologin resolver
-USER resolver
-
+# Sin usuario sin privilegios: Easypanel monta /app/cookies.txt como root y
+# un usuario normal no puede leerlo ("Permission denied"). Es un servicio
+# interno (sin dominio publicado) protegido por YT_RESOLVER_TOKEN, así que
+# correr como root aquí es un riesgo asumible.
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
