@@ -97,18 +97,41 @@ def _es_stub_plano(entrada: dict) -> bool:
     return entrada.get("_type") == "url" or "formats" not in entrada
 
 
+def _elegir_formato(formatos: list) -> Optional[dict]:
+    """
+    Se prefiere audio-only, servido como archivo directo (no HLS/DASH
+    fragmentado, que Lavalink no sabe leer como una URL HTTP normal), y en
+    los contenedores que Lavalink sabe decodificar seguro: m4a (AAC) o webm
+    (Opus). Si no hay ninguno así, se cae a cualquier formato con audio,
+    aunque sea de peor calidad, antes que fallar del todo.
+    """
+    audio = [
+        f for f in formatos
+        if f.get("acodec") not in (None, "none") and f.get("vcodec") in (None, "none")
+    ]
+
+    directos = [
+        f for f in audio
+        if "m3u8" not in (f.get("protocol") or "") and "dash" not in (f.get("protocol") or "")
+    ]
+
+    buenos = [f for f in directos if f.get("ext") in ("m4a", "webm")]
+
+    for candidatos in (buenos, directos, audio, formatos):
+        if candidatos:
+            # abr (bitrate de audio) más alto primero; los que no lo traen, al final.
+            return max(candidatos, key=lambda f: f.get("abr") or 0)
+    return None
+
+
 def _pista_desde_info(info: dict) -> Optional[dict]:
     if info.get("is_live"):
         return None
 
+    elegido = None
     url = info.get("url")
     if not url:
-        formatos = info.get("formats") or []
-        audio = [
-            f for f in formatos
-            if f.get("acodec") not in (None, "none") and f.get("vcodec") in (None, "none")
-        ]
-        elegido = audio[-1] if audio else (formatos[-1] if formatos else None)
+        elegido = _elegir_formato(info.get("formats") or [])
         url = elegido.get("url") if elegido else None
 
     if not url:
@@ -121,6 +144,13 @@ def _pista_desde_info(info: dict) -> Optional[dict]:
         "durationMs": int((info.get("duration") or 0) * 1000),
         "thumbnail": info.get("thumbnail"),
         "sourceUrl": info.get("webpage_url") or info.get("original_url"),
+        # No sensible, solo para depurar sin adivinar: qué formato se eligió.
+        "formatoDebug": {
+            "ext": (elegido or {}).get("ext"),
+            "protocol": (elegido or {}).get("protocol"),
+            "acodec": (elegido or {}).get("acodec"),
+            "abr": (elegido or {}).get("abr"),
+        } if elegido else None,
     }
 
 
