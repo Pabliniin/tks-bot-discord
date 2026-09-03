@@ -45,6 +45,15 @@ const MAX_COLA = 500;
  */
 const MAX_FALLOS_SEGUIDOS = 3;
 
+/**
+ * Cuánto tiene que seguir sonando una canción tras el aviso «start» de
+ * Lavalink antes de contarla como un acierto de verdad. Algunas fuentes
+ * avisan «start» y fallan segundos después («exception»); sin esta espera,
+ * el contador de MAX_FALLOS_SEGUIDOS se reiniciaría con cada canción nueva y
+ * el freno nunca llegaría a dispararse.
+ */
+const CONFIRMACION_REPRODUCCION_MS = 4000;
+
 /** Filtros de audio disponibles, con su configuración de Lavalink. */
 const FILTROS = {
   ninguno: { nombre: 'Ninguno', config: null },
@@ -112,6 +121,8 @@ class Cola {
     this.filtro = 'ninguno';
     /** Fallos seguidos al reproducir. Si se dispara, se para en vez de vaciar la cola a golpe de fallo. */
     this.fallosConsecutivos = 0;
+    /** Temporizador que confirma que una canción sigue sonando de verdad (ver CONFIRMACION_REPRODUCCION_MS). */
+    this.temporizadorConfirmacion = null;
   }
 
   /** Duración total de lo que queda por sonar, en milisegundos. */
@@ -403,9 +414,24 @@ function registrarEventos(client, cola) {
 
   player.on('start', () => {
     cola.votos.clear();
-    cola.fallosConsecutivos = 0;
     cancelarInactividad(cola);
     anunciarCancion(client, cola).catch(() => {});
+
+    /*
+     * No se da por buena la canción solo porque Lavalink avise «start»: con
+     * fuentes que fallan a media conexión, ese aviso llega igualmente antes
+     * de que el streaming se corte de verdad («exception» momentos después).
+     * Si el contador de fallos se reiniciara aquí mismo, el freno de
+     * MAX_FALLOS_SEGUIDOS nunca se dispararía: cada canción volvería a
+     * empezar de cero antes de fallar. Solo cuenta como acierto de verdad si
+     * sigue sonando ella misma pasado un momento.
+     */
+    const trackAlEmpezar = cola.current;
+    clearTimeout(cola.temporizadorConfirmacion);
+    cola.temporizadorConfirmacion = setTimeout(() => {
+      if (cola.current === trackAlEmpezar) cola.fallosConsecutivos = 0;
+    }, CONFIRMACION_REPRODUCCION_MS);
+    cola.temporizadorConfirmacion.unref?.();
   });
 
   player.on('end', (data) => {
