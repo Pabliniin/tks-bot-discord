@@ -482,6 +482,23 @@ funciona igual sin él.
 **El bot arranca pero no responde a los comandos** — Faltan los *intents*
 privilegiados. Actívalos en el portal de Discord (paso 1.2) y reinicia el bot.
 
+**Los registros configurados en el panel no aparecen en Discord** — Comprueba
+en los registros de arranque del bot cuántos eventos ha cargado
+(`EVENT  N eventos registrados`). Si el número es mucho menor de lo esperado,
+revisa que `.gitignore` no esté ignorando por error una carpeta de código:
+`logs/` (sin barra inicial) coincide con **cualquier** carpeta llamada `logs`
+en cualquier nivel del repositorio, incluida `apps/bot/src/events/logs/`, que
+es código fuente y no un directorio de archivos de registro. Usa siempre
+`/logs/` (con la barra) para las reglas que solo deben aplicar a la raíz.
+
+**«Hay OTRA instancia del bot en marcha» justo después de cada despliegue** —
+Es normal ver este aviso *una vez* durante el solapamiento entre el
+contenedor viejo y el nuevo (Easypanel arranca el nuevo antes de apagar el
+viejo). Si sigue saliendo minuto tras minuto con la misma instancia antigua,
+comprueba que `instanceGuard` tenga su método `onShutdown`: sin él, el
+registro de la instancia apagada no se borra y el TTL de `BotInstance` tarda
+hasta 5 minutos en limpiarlo por su cuenta.
+
 **«Used disallowed intents»** — Lo mismo: los dos intents no están activados.
 
 **No da los roles de nivel** — El rol del bot está por debajo del rol que

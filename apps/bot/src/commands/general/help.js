@@ -213,6 +213,9 @@ module.exports = {
       }
       await interaction.update({
         embeds: [categoryEmbed(ctx.client, interaction.values[0], prefix)],
+      }).catch(() => {
+        // El token de la interacción puede caducar entre el clic y aquí
+        // (picos de latencia, reinicios); no hay nada que responder ya.
       });
     });
 
