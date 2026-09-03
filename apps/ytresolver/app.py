@@ -179,21 +179,39 @@ def health():
 
 @app.get("/debug/cookies")
 def debug_cookies(x_api_key: str = Header(default="")):
-    """Diagnóstico temporal: solo forma del archivo, nunca valores de cookies."""
+    """Diagnóstico temporal: solo forma del archivo y permisos, nunca valores de cookies."""
     if not API_KEY or x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="unauthorized")
-    if not os.path.isfile(COOKIES_PATH):
-        return {"existe": False}
-    with open(COOKIES_PATH, "r", encoding="utf-8", errors="replace") as f:
-        lineas = f.readlines()
+
+    info = {
+        "existeRuta": os.path.exists(COOKIES_PATH),
+        "uidProceso": os.getuid(),
+        "gidProceso": os.getgid(),
+    }
+    try:
+        st = os.stat(COOKIES_PATH)
+        info["modo"] = oct(st.st_mode)
+        info["propietarioUid"] = st.st_uid
+        info["propietarioGid"] = st.st_gid
+    except OSError as err:
+        info["statError"] = str(err)
+        return info
+
+    try:
+        with open(COOKIES_PATH, "r", encoding="utf-8", errors="replace") as f:
+            lineas = f.readlines()
+    except OSError as err:
+        info["openError"] = str(err)
+        return info
+
     datos = [l for l in lineas if l.strip() and not l.lstrip().startswith("#")]
-    return {
-        "existe": True,
+    info.update({
         "totalLineas": len(lineas),
         "primeraLineaRepr": repr(lineas[0][:60]) if lineas else None,
         "lineasDeDatos": len(datos),
         "camposPrimeras3": [len(l.rstrip("\n").split("\t")) for l in datos[:3]],
-    }
+    })
+    return info
 
 
 @app.get("/resolve")
