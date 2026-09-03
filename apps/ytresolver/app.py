@@ -177,6 +177,25 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/debug/cookies")
+def debug_cookies(x_api_key: str = Header(default="")):
+    """Diagnóstico temporal: solo forma del archivo, nunca valores de cookies."""
+    if not API_KEY or x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="unauthorized")
+    if not os.path.isfile(COOKIES_PATH):
+        return {"existe": False}
+    with open(COOKIES_PATH, "r", encoding="utf-8", errors="replace") as f:
+        lineas = f.readlines()
+    datos = [l for l in lineas if l.strip() and not l.lstrip().startswith("#")]
+    return {
+        "existe": True,
+        "totalLineas": len(lineas),
+        "primeraLineaRepr": repr(lineas[0][:60]) if lineas else None,
+        "lineasDeDatos": len(datos),
+        "camposPrimeras3": [len(l.rstrip("\n").split("\t")) for l in datos[:3]],
+    }
+
+
 @app.get("/resolve")
 async def resolve(
     query: str = Query(..., min_length=1),
