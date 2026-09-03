@@ -46,16 +46,18 @@ YDL_OPTS_BASE = {
     "quiet": True,
     "no_warnings": True,
     "skip_download": True,
-    # "bestaudio" a secas: forzar solo progresivo (excluir m3u8/HLS) dejaba
-    # sin formato disponible varios videos, porque YouTube ahora sirve el
-    # audio de algunos solo por HLS. Lavalink sabe leer manifiestos m3u8
-    # igual que un archivo HTTP normal, así que no hace falta filtrarlos.
-    "format": "bestaudio/best",
-    # El cliente "web" es el que YouTube vigila mas de cerca. "android" e
-    # "ios" simulan la app movil y en la practica tropiezan menos con el
-    # "This video requires login" que vimos con el plugin de Lavalink.
-    "extractor_args": {"youtube": {"player_client": ["android", "ios", "web"]}},
-    "socket_timeout": 15,
+    # Sin "format": aquí no se le pide a yt-dlp que elija un formato — eso
+    # hace que `extract_info` falle entera con "Requested format is not
+    # available" en cuanto su selector interno no encuentra nada que encaje
+    # (nos pasó con "bestaudio/best"). Se extrae SIEMPRE la lista completa
+    # de formatos, sin condiciones, y el formato se elige a mano en
+    # `_pista_desde_info`: así, si un video no trae audio-only, cae a
+    # cualquier formato con audio en vez de fallar de golpe.
+    #
+    # Tampoco se fija "player_client" a mano: yt-dlp decide qué clientes
+    # probar y esa lista la actualizan con cada versión persiguiendo los
+    # cambios de YouTube; fijarla nosotros solo puede quedarse anticuada.
+    "socket_timeout": 20,
 }
 
 app = FastAPI()
@@ -134,7 +136,12 @@ def _resolver_sync(consulta: str, es_busqueda: bool, limite: int) -> dict:
     if entradas is None:
         pista = _pista_desde_info(info)
         if not pista:
-            return {"tracks": [], "playlist": None, "error": "Sin audio disponible (¿directo en vivo?)."}
+            n = len(info.get("formats") or [])
+            return {
+                "tracks": [],
+                "playlist": None,
+                "error": f"Sin audio disponible (¿directo en vivo?). {n} formato(s) recibidos.",
+            }
         return {"tracks": [pista], "playlist": None, "error": None}
 
     entradas = [e for e in entradas if e][:limite]
