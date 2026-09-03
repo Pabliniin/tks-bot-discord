@@ -31,3 +31,4 @@ apps/bot/logs/
 # Cookies de sesión de YouTube para el resolutor (apps/ytresolver). Nunca
 # viajan por el repositorio: se montan aparte directamente en el servicio.
 cookies.txt
+__pycache__/

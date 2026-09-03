@@ -26,6 +26,7 @@ sesion — eso ya no es un problema de configuracion, es el video en concreto.
 import asyncio
 import logging
 import os
+import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
@@ -190,8 +191,17 @@ def _resolver_sync(consulta: str, es_busqueda: bool, limite: int) -> dict:
     if not entradas:
         return {"tracks": [], "playlist": None, "error": "La lista está vacía."}
 
-    with ThreadPoolExecutor(max_workers=min(4, len(entradas))) as pool_interno:
-        tracks = [t for t in pool_interno.map(_resolver_entrada, entradas) if t]
+    # Una a una, con una pausa corta entre cada una -- no en paralelo. Varias
+    # peticiones de golpe a YouTube con la misma sesión de cookies es
+    # precisamente el patrón que dispara su propio bloqueo por bots; tarda
+    # más, pero es lo que de verdad ha funcionado en pruebas reales.
+    tracks = []
+    for i, entrada in enumerate(entradas):
+        if i > 0:
+            time.sleep(0.6)
+        pista = _resolver_entrada(entrada)
+        if pista:
+            tracks.append(pista)
 
     return {
         "tracks": tracks,

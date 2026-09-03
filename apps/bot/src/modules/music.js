@@ -35,6 +35,16 @@ const ESPERA_INACTIVO = 2 * 60_000;
 /** Tope de canciones en cola, para no llenar la memoria con una lista enorme. */
 const MAX_COLA = 500;
 
+/**
+ * Fallos de reproducción seguidos (sin que suene nada de por medio) antes de
+ * rendirse y vaciar la cola, en vez de ir avisando canción a canción hasta el
+ * final. Casi siempre significa que la fuente entera no está disponible
+ * ahora mismo (YouTube bloqueado, Lavalink caído...), y bombardear el canal
+ * con un aviso por cada una de las canciones que quedan es peor que un solo
+ * aviso claro.
+ */
+const MAX_FALLOS_SEGUIDOS = 3;
+
 /** Filtros de audio disponibles, con su configuración de Lavalink. */
 const FILTROS = {
   ninguno: { nombre: 'Ninguno', config: null },
@@ -100,6 +110,8 @@ class Cola {
     this.temporizador = null;
     /** Filtro de audio aplicado. */
     this.filtro = 'ninguno';
+    /** Fallos seguidos al reproducir. Si se dispara, se para en vez de vaciar la cola a golpe de fallo. */
+    this.fallosConsecutivos = 0;
   }
 
   /** Duración total de lo que queda por sonar, en milisegundos. */
@@ -383,6 +395,7 @@ function registrarEventos(client, cola) {
 
   player.on('start', () => {
     cola.votos.clear();
+    cola.fallosConsecutivos = 0;
     cancelarInactividad(cola);
     anunciarCancion(client, cola).catch(() => {});
   });
@@ -397,11 +410,13 @@ function registrarEventos(client, cola) {
 
   player.on('exception', (data) => {
     logger.debug(`Fallo reproduciendo en ${cola.guildId}: ${data.exception?.message}`);
+    if (manejarFalloDeReproduccion(client, cola)) return;
     avisar(client, cola, `No se pudo reproducir **${cola.current?.info.title || 'la canción'}**. Paso a la siguiente.`);
     siguiente(client, cola.guildId).catch(() => {});
   });
 
   player.on('stuck', () => {
+    if (manejarFalloDeReproduccion(client, cola)) return;
     avisar(client, cola, 'La canción se ha quedado atascada. Paso a la siguiente.');
     siguiente(client, cola.guildId).catch(() => {});
   });
@@ -410,6 +425,33 @@ function registrarEventos(client, cola) {
     // La conexión de voz se ha cerrado (nos han echado, o se cayó la red).
     destruir(cola.guildId).catch(() => {});
   });
+}
+
+/**
+ * Cuenta un fallo de reproducción y, si ya van demasiados seguidos, vacía la
+ * cola y avisa una sola vez en vez de seguir saltando canción a canción.
+ *
+ * @returns {boolean} `true` si ya se ha rendido (el llamador no debe avanzar
+ *   ni avisar por su cuenta); `false` si toca seguir como siempre.
+ */
+function manejarFalloDeReproduccion(client, cola) {
+  cola.fallosConsecutivos += 1;
+  if (cola.fallosConsecutivos < MAX_FALLOS_SEGUIDOS) return false;
+
+  const descartadas = cola.tracks.length;
+  cola.tracks = [];
+  cola.current = null;
+  cola.fallosConsecutivos = 0;
+
+  avisar(
+    client,
+    cola,
+    `${MAX_FALLOS_SEGUIDOS} canciones seguidas han fallado, así que he vaciado la cola en vez de ` +
+      `seguir intentándolo una a una${descartadas > 0 ? ` (se han quitado ${descartadas} más)` : ''}. ` +
+      'Puede que la fuente no esté disponible ahora mismo. Prueba con otra canción o con un enlace directo.'
+  );
+  programarInactividad(client, cola, 'La cola se vació por fallos seguidos.');
+  return true;
 }
 
 /**
@@ -619,6 +661,7 @@ module.exports = {
   BUCLES,
   FILTROS,
   MAX_COLA,
+  MAX_FALLOS_SEGUIDOS,
 
   // Estado.
   colas,
@@ -633,6 +676,7 @@ module.exports = {
   conectar,
   siguiente,
   destruir,
+  manejarFalloDeReproduccion,
   programarInactividad,
   cancelarInactividad,
   avisar,
