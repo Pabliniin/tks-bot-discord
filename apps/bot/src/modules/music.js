@@ -615,8 +615,14 @@ module.exports = {
       }
     });
 
-    // Shoukaku necesita ver los paquetes de voz que llegan por la pasarela.
-    client.on('raw', (packet) => shoukaku.connector.handleRaw(packet));
+    /*
+     * NO hay que reenviarle los paquetes de la pasarela a mano.
+     *
+     * El conector `Connectors.DiscordJS` se engancha él solo a los eventos
+     * `raw` y `clientReady` del cliente (lo hace `listen()`, que llama el
+     * propio constructor de Shoukaku). Añadir aquí otro `client.on('raw', …)`
+     * duplicaba el trabajo y, además, llamaba a un método que no existe.
+     */
 
     logger.module('music', `Conectando con Lavalink en ${configuracion.url}…`);
   },
