@@ -14,10 +14,13 @@ y se la devuelve al bot. El bot le pasa esa URL a Lavalink como si fuera un
 archivo HTTP cualquiera (la fuente "http", ya activada) — Lavalink nunca habla
 con YouTube directamente para estos tracks.
 
-Esto NO es una garantia: si el bloqueo de YouTube fuera por reputacion pura de
-la IP (no por el cliente que la pide), yt-dlp tropezaria con lo mismo. Es el
-mecanismo con mejores probabilidades disponible sin depender de una cuenta o
-de infraestructura de terceros, no una solucion garantizada al 100%.
+Esto NO es una garantia al 100%: hay un archivo de cookies opcional
+(/app/cookies.txt, montado aparte, nunca en el repositorio) de una sesion
+real de YouTube, que hace que las peticiones se vean como las de una persona
+con sesion iniciada en vez de un servidor anonimo. Con eso arregla la
+mayoria de los videos, pero algunos siguen pidiendo "Sign in to confirm
+you're not a bot" por sus propias restricciones (edad, region) aunque haya
+sesion — eso ya no es un problema de configuracion, es el video en concreto.
 """
 
 import asyncio
@@ -200,43 +203,6 @@ def _resolver_sync(consulta: str, es_busqueda: bool, limite: int) -> dict:
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
-
-@app.get("/debug/cookies")
-def debug_cookies(x_api_key: str = Header(default="")):
-    """Diagnóstico temporal: solo forma del archivo y permisos, nunca valores de cookies."""
-    if not API_KEY or x_api_key != API_KEY:
-        raise HTTPException(status_code=401, detail="unauthorized")
-
-    info = {
-        "existeRuta": os.path.exists(COOKIES_PATH),
-        "uidProceso": os.getuid(),
-        "gidProceso": os.getgid(),
-    }
-    try:
-        st = os.stat(COOKIES_PATH)
-        info["modo"] = oct(st.st_mode)
-        info["propietarioUid"] = st.st_uid
-        info["propietarioGid"] = st.st_gid
-    except OSError as err:
-        info["statError"] = str(err)
-        return info
-
-    try:
-        with open(COOKIES_PATH, "r", encoding="utf-8", errors="replace") as f:
-            lineas = f.readlines()
-    except OSError as err:
-        info["openError"] = str(err)
-        return info
-
-    datos = [l for l in lineas if l.strip() and not l.lstrip().startswith("#")]
-    info.update({
-        "totalLineas": len(lineas),
-        "primeraLineaRepr": repr(lineas[0][:60]) if lineas else None,
-        "lineasDeDatos": len(datos),
-        "camposPrimeras3": [len(l.rstrip("\n").split("\t")) for l in datos[:3]],
-    })
-    return info
 
 
 @app.get("/resolve")

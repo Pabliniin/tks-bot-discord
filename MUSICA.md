@@ -167,6 +167,32 @@ Java) y luego redespliega `bot`.
 Sin estas dos variables, YouTube sigue pasando por el plugin de Lavalink de
 siempre — este servicio es opcional y el bot funciona igual sin él.
 
+### 4. Opcional: cookies de sesión (recomendado)
+
+Sin esto, muchos videos siguen fallando con «Sign in to confirm you're not a
+bot» — yt-dlp por sí solo no basta, YouTube pide una sesión de verdad. Con
+las cookies de una cuenta con sesión iniciada, las peticiones se ven como
+las de una persona en vez de un servidor anónimo, y la mayoría de videos
+funcionan.
+
+1. Instala la extensión de Chrome **"Get cookies.txt LOCALLY"**.
+2. Entra a youtube.com con sesión iniciada y exporta las cookies a
+   `cookies.txt` con la extensión.
+3. En Easypanel, en el servicio `ytresolver` → **Almacenamiento** → **Agregar
+   montaje de archivo**:
+   - **Ruta de montaje**: `/app/cookies.txt`
+   - **Contenido**: pega ahí el `cookies.txt` completo, tal cual.
+4. Redespliega `ytresolver`.
+
+**No es una garantía al 100%.** Algunos videos (con restricción de edad o de
+región propia) siguen pidiendo verificación aunque haya sesión iniciada —
+eso ya no es un fallo de configuración, es el video en concreto.
+
+**Sobre el riesgo**: si te preocupa tu cuenta principal, usa una cuenta de
+Google secundaria solo para esto — funciona igual y tu cuenta personal queda
+al margen. Las cookies caducan cada cierto tiempo; si `-play` vuelve a fallar
+en videos que antes sí sonaban, repite estos pasos con cookies nuevas.
+
 ---
 
 ## Opción B: Todo con docker-compose
