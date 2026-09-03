@@ -46,29 +46,12 @@ YDL_OPTS_BASE = {
     "quiet": True,
     "no_warnings": True,
     "skip_download": True,
-    # Selector explícito de audio, en orden de preferencia:
-    #   140            -> itag fijo de YouTube para AAC/m4a ~128kbps. Casi
-    #                     todos los videos lo tienen; es el mismo formato
-    #                     "seguro" que usan la mayoría de bots basados en
-    #                     yt-dlp, precisamente porque Lavalink lo decodifica
-    #                     sin problema.
-    #   bestaudio[...]  -> si no hay 140, el mejor audio-only en m4a o webm,
-    #                     evitando HLS/DASH (Lavalink no sabe leer eso como
-    #                     un archivo HTTP normal).
-    #   best            -> último recurso: video+audio combinado.
-    #
-    # No dejar "format" sin más NO basta: yt-dlp aplica un selector por
-    # defecto igual (algo como "bestvideo+bestaudio/best"), y con eso
-    # fusiona video y audio -- sin ffmpeg instalado en esta imagen, o falla,
-    # o el "url" que devuelve no es un archivo de audio simple, y Lavalink
-    # lo rechaza ("Something went wrong while looking up the track", nos
-    # pasó en pruebas reales con "all"). Aun así, `_elegir_formato` sigue de
-    # red de seguridad si por lo que sea no queda `info['url']` puesto.
-    #
-    # Tampoco se fija "player_client" a mano (salvo con cookies, más abajo):
-    # yt-dlp decide qué clientes probar y esa lista la actualizan con cada
-    # versión persiguiendo los cambios de YouTube.
-    "format": "140/bestaudio[ext=m4a][protocol^=https]/bestaudio[protocol^=https]/best",
+    # Sin "format" ni "player_client" fijados a mano: cada intento de
+    # "ayudar" fijando uno de los dos ha ido A PEOR en pruebas reales, no a
+    # mejor (ver commits anteriores). yt-dlp decide todo eso él solo y esa
+    # lógica la actualiza con cada versión persiguiendo los cambios de
+    # YouTube -- confiar en su criterio dio mejor resultado que cualquier
+    # selector que hemos probado a mano.
     "socket_timeout": 20,
 }
 
@@ -82,12 +65,7 @@ YDL_OPTS_BASE = {
 COOKIES_PATH = "/app/cookies.txt"
 if os.path.isfile(COOKIES_PATH):
     YDL_OPTS_BASE["cookiefile"] = COOKIES_PATH
-    # Los clientes "android"/"ios" autentican con una clave de la app móvil,
-    # no con cookies: si yt-dlp prueba esos primero y fallan (nos pasó en
-    # pruebas reales, incluso con cookies puestas), nunca llega a usarlas.
-    # Solo "web" lee la cookiejar, así que con cookies se fuerza ese.
-    YDL_OPTS_BASE["extractor_args"] = {"youtube": {"player_client": ["web"]}}
-    log.info("Usando cookies de sesión en %s (cliente forzado a «web»)", COOKIES_PATH)
+    log.info("Usando cookies de sesión en %s", COOKIES_PATH)
 else:
     log.info("Sin archivo de cookies (%s): se prueba sin sesión iniciada.", COOKIES_PATH)
 
