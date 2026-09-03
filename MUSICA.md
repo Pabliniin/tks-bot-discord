@@ -188,14 +188,41 @@ funcionan.
    - **Contenido**: pega ahí el `cookies.txt` completo, tal cual.
 4. Redespliega `ytresolver`.
 
-**No es una garantía al 100%.** Algunos videos (con restricción de edad o de
-región propia) siguen pidiendo verificación aunque haya sesión iniciada —
-eso ya no es un fallo de configuración, es el video en concreto.
+**Puede que esto NO baste por sí solo.** En pruebas reales, incluso con
+cookies recién exportadas de una sesión de verdad, algunos servidores siguen
+recibiendo «Sign in to confirm» en videos normales (no solo en contenido con
+restricción de edad o región) — la IP puede tener una marca de reputación
+que las cookies solas no cubren del todo. Si te pasa eso, sigue con el
+siguiente paso.
 
 **Sobre el riesgo**: si te preocupa tu cuenta principal, usa una cuenta de
 Google secundaria solo para esto — funciona igual y tu cuenta personal queda
 al margen. Las cookies caducan cada cierto tiempo; si `-play` vuelve a fallar
 en videos que antes sí sonaban, repite estos pasos con cookies nuevas.
+
+### 5. Opcional: proveedor de PO token (si las cookies no bastan)
+
+YouTube le exige a los clientes que marca como sospechosos un «token de
+origen» (PO token) además de la sesión. Lo genera un servicio aparte,
+[bgutil-ytdlp-pot-provider](https://github.com/Brainicism/bgutil-ytdlp-pot-provider),
+con una imagen de Docker ya lista — no hace falta compilar nada.
+
+1. En Easypanel: **+ Service** → **App** → nombre `potprovider`.
+2. En **Source**, elige **Imagen Docker**: `brainicism/bgutil-ytdlp-pot-provider`.
+3. En el comando de arranque (o **Avanzado** → **Comando**), pon: `--host 0.0.0.0`
+   (el servicio por defecto solo escucha en `localhost`, y así no lo alcanza
+   `ytresolver` desde otro contenedor).
+4. **No le pongas dominio** — solo lo debe alcanzar `ytresolver` por la red
+   interna.
+5. En el servicio `ytresolver`, añade:
+   ```
+   POT_PROVIDER_URL=http://tks_bot_potprovider:4416
+   ```
+6. Despliega `potprovider` primero, espera a que arranque, y luego
+   redespliega `ytresolver`.
+
+Tampoco es una garantía al 100%, pero es la pieza que faltaba cuando cookies
+solas no bastan.
 
 ---
 

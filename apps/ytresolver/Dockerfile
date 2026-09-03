@@ -22,8 +22,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
 # la imagen se coge la ultima, para seguir el ritmo de los cambios que
 # YouTube le hace a sus defensas. Si un dia deja de funcionar, lo primero es
 # reconstruir esta imagen sin cache antes de sospechar de otra cosa.
+#
+# bgutil-ytdlp-pot-provider: plugin que le pide a un servicio aparte (ver
+# MUSICA.md) el "token de origen" que YouTube exige a clientes que marca
+# como sospechosos. yt-dlp lo detecta solo al estar instalado; no hace falta
+# activarlo a mano, solo darle POT_PROVIDER_URL para que sepa a qué
+# servidor pedirselo (ver POT_PROVIDER_URL en app.py).
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir fastapi "uvicorn[standard]" yt-dlp
+    && pip install --no-cache-dir fastapi "uvicorn[standard]" yt-dlp bgutil-ytdlp-pot-provider
 
 COPY apps/ytresolver/app.py ./app.py
 

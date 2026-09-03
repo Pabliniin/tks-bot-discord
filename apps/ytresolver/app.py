@@ -21,12 +21,19 @@ unos segundos mas por cancion (hay que descargarla antes de poder sonar),
 pero es muchisimo mas fiable.
 
 Cookies opcionales (/app/cookies.txt, montado aparte en Easypanel, nunca en
-el repositorio): de una sesion real de YouTube, para que las peticiones se
-vean como las de una persona con sesion iniciada en vez de un servidor
-anonimo. Arregla la mayoria de los videos. Esto NO es una garantia al 100%:
-algunos videos (restriccion de edad o de region) siguen pidiendo
-verificacion aunque haya sesion -- eso ya no es un problema de
-configuracion, es el video en concreto.
+el repositorio): de una sesion real de YouTube. Se probaron solas primero y
+NO bastaron -- hasta con cookies recien exportadas de una sesion de verdad,
+YouTube seguia devolviendo "Sign in to confirm you're not a bot" en videos
+normales (no solo en contenido con restriccion de edad/region). Eso apunta a
+un bloqueo de reputacion de la IP del VPS mas fuerte de lo que las cookies
+por si solas pueden arreglar.
+
+Proveedor de PO token (POT_PROVIDER_URL, opcional): un "token de origen"
+adicional que YouTube exige en clientes marcados como sospechosos, aparte de
+la sesion. Lo genera un servicio aparte (proyecto bgutil-ytdlp-pot-provider,
+https://github.com/Brainicism/bgutil-ytdlp-pot-provider) que se monta como
+otro contenedor en Easypanel. Tampoco es una garantia al 100%, pero es la
+pieza que faltaba en las pruebas: cookies sin esto no bastaron.
 """
 
 import asyncio
@@ -62,6 +69,12 @@ if TIENE_COOKIES:
 else:
     log.info("Sin archivo de cookies (%s): se prueba sin sesión iniciada.", COOKIES_PATH)
 
+POT_PROVIDER_URL = os.environ.get("POT_PROVIDER_URL", "").strip().rstrip("/")
+if POT_PROVIDER_URL:
+    log.info("Usando proveedor de PO token en %s", POT_PROVIDER_URL)
+else:
+    log.info("Sin POT_PROVIDER_URL: se prueba sin token de origen.")
+
 app = FastAPI()
 
 
@@ -96,6 +109,10 @@ def _opciones_yt_dlp(identificador: str) -> dict:
     }
     if TIENE_COOKIES:
         opciones["cookiefile"] = COOKIES_PATH
+    if POT_PROVIDER_URL:
+        opciones["extractor_args"] = {
+            "youtubepot-bgutilhttp": {"base_url": POT_PROVIDER_URL},
+        }
     return opciones
 
 
