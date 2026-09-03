@@ -60,6 +60,20 @@ YDL_OPTS_BASE = {
     "socket_timeout": 20,
 }
 
+# "Sign in to confirm you're not a bot": ni el plugin de Lavalink ni yt-dlp
+# sin más pasan este bloqueo desde la IP del VPS — es un bloqueo por
+# reputación de la IP, no por el cliente usado. Con cookies de una sesión
+# real de YouTube, las peticiones se ven como las de una persona con sesión
+# iniciada en vez de un servidor anónimo. El archivo se monta aparte (no va
+# en el repositorio ni en variables de entorno) porque son credenciales de
+# una cuenta de verdad.
+COOKIES_PATH = "/app/cookies.txt"
+if os.path.isfile(COOKIES_PATH):
+    YDL_OPTS_BASE["cookiefile"] = COOKIES_PATH
+    log.info("Usando cookies de sesión en %s", COOKIES_PATH)
+else:
+    log.info("Sin archivo de cookies (%s): se prueba sin sesión iniciada.", COOKIES_PATH)
+
 app = FastAPI()
 
 
