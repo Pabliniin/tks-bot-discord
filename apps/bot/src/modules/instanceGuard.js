@@ -117,4 +117,20 @@ module.exports = {
 
     timer.unref?.();
   },
+
+  /**
+   * Borra el registro de esta instancia al apagarse.
+   *
+   * Sin esto, cada despliegue disparaba una falsa alarma de «hay otra
+   * instancia»: Easypanel arranca el contenedor nuevo antes de apagar el
+   * viejo, y como el registro tardaba hasta 5 minutos en caducar por sí solo
+   * (el TTL de `BotInstance`), el nuevo veía al viejo como si siguiera vivo
+   * de verdad, no como el solapamiento normal de un despliegue.
+   *
+   * Un cierre limpio (SIGTERM, Ctrl+C) sí pasa por aquí; un proceso que muere
+   * de golpe no, y para ese caso sigue estando el TTL como red de seguridad.
+   */
+  async onShutdown() {
+    await BotInstance.deleteOne({ instanceId }).catch(() => {});
+  },
 };

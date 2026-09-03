@@ -12,7 +12,17 @@ Thumbs.db
 coverage/
 .turbo/
 apps/web/.next/
-logs/
+
+# Carpetas de registros en disco.
+#
+# OJO con escribir `logs/` a secas: en Git eso coincide con CUALQUIER carpeta
+# llamada «logs» en cualquier nivel, y se llevó por delante
+# `apps/bot/src/events/logs/`, que es CÓDIGO FUENTE. Los manejadores de
+# registros del bot estuvieron meses sin subirse al repositorio ni desplegarse,
+# y por eso «los logs no funcionaban» en el servidor.
+#
+# La barra inicial ancla la regla a la raíz del repositorio.
+/logs/
 apps/bot/logs/
 
 # Marca de que los comandos de barra ya se registraron (local)
