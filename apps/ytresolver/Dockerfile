@@ -11,6 +11,11 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+# Sin esto, la salida de Python (y la de yt-dlp) se queda en un buffer y
+# aparece en `docker logs` con retraso y desordenada -- muy confuso al
+# diagnosticar un fallo en tiempo real.
+ENV PYTHONUNBUFFERED=1
+
 # ffmpeg: yt-dlp lo necesita para juntar audio+video cuando el mejor
 # formato disponible no viene ya en un único archivo (pasa con algunos
 # videos). Ahora que este servicio DESCARGA el audio en vez de solo pasar

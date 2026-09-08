@@ -48,7 +48,8 @@ services:
       LAVALINK_SERVER_SOURCES_HTTP: 'true'
     # Sin puertos publicados: solo lo alcanza el bot por la red interna.
     healthcheck:
-      test: ['CMD-SHELL', 'nc -z localhost 2333 || exit 1']
+      # La imagen no trae `nc`; comprobamos el puerto con bash directamente.
+      test: ['CMD-SHELL', 'bash -c "echo > /dev/tcp/localhost/2333" || exit 1']
       interval: 20s
       timeout: 5s
       retries: 5

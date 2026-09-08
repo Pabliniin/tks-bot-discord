@@ -93,10 +93,14 @@ def _limpiar_cache_periodicamente():
 threading.Thread(target=_limpiar_cache_periodicamente, daemon=True).start()
 
 
+VERBOSE = os.environ.get("YT_DLP_VERBOSE", "").lower() in ("1", "true", "yes")
+
+
 def _opciones_yt_dlp(identificador: str) -> dict:
     opciones = {
-        "quiet": True,
-        "no_warnings": True,
+        "quiet": not VERBOSE,
+        "no_warnings": not VERBOSE,
+        "verbose": VERBOSE,
         "outtmpl": os.path.join(CACHE_DIR, f"{identificador}.%(ext)s"),
         # Audio-only si existe (más rápido de bajar); si no, el mejor que haya.
         # Sin restringir contenedor ni protocolo: al DESCARGAR el archivo
@@ -139,29 +143,36 @@ def _descargar(identificador: str, nombre_base: str) -> dict:
     }
 
 
-def _listar_entradas_playlist(objetivo: str, limite: int) -> tuple:
-    """Para una URL de lista: nombres/ids sin descargar nada todavía (rápido)."""
+def _listar_entradas(objetivo: str, limite: int, es_busqueda: bool) -> tuple:
+    """Nombres/ids de los candidatos, sin descargar nada todavía (rápido).
+
+    Para una búsqueda, pide de más y descarta lo que no sea un vídeo normal:
+    a veces el primer resultado que devuelve YouTube es un CANAL (p.ej. si el
+    término de búsqueda coincide con el nombre de un artista), no un vídeo.
+    Si se intenta "descargar" un canal como si fuera un vídeo, yt-dlp se
+    queda dando vueltas sin terminar nunca -- confirmado en pruebas reales
+    (búsqueda "La Pantera" -> primer resultado era el canal, no una canción).
+    Un vídeo normal siempre trae `ie_key` "Youtube"; un canal trae
+    "YoutubeTab".
+    """
+    objetivo_real = f"ytsearch{min(limite * 3, MAX_RESULTADOS)}:{objetivo}" if es_busqueda else objetivo
     opciones = dict(_opciones_yt_dlp("_"), extract_flat="in_playlist")
     with yt_dlp.YoutubeDL(opciones) as ydl:
-        info = ydl.extract_info(objetivo, download=False)
+        info = ydl.extract_info(objetivo_real, download=False)
 
     entradas = info.get("entries")
     if entradas is None:
-        return [objetivo], None
+        return [objetivo_real], None
 
+    entradas = [e for e in entradas if e and e.get("ie_key", "Youtube") == "Youtube"]
     identificadores = [e.get("url") or e.get("id") for e in entradas if e]
     identificadores = [i for i in identificadores if i][:limite]
     return identificadores, info.get("title")
 
 
 def _resolver_sync(consulta: str, es_busqueda: bool, limite: int) -> dict:
-    objetivo = f"ytsearch{max(1, limite)}:{consulta}" if es_busqueda else consulta
-
     try:
-        if es_busqueda:
-            identificadores, nombre_lista = [objetivo], None
-        else:
-            identificadores, nombre_lista = _listar_entradas_playlist(objetivo, limite)
+        identificadores, nombre_lista = _listar_entradas(consulta, limite, es_busqueda)
     except Exception as err:  # noqa: BLE001
         return {"error": str(err), "tracks": [], "playlist": None}
 
