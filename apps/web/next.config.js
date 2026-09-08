@@ -30,13 +30,20 @@ function contentSecurityPolicy(esProduccion) {
     "base-uri 'self'",
     "form-action 'self'",
     "object-src 'none'",
-    esProduccion ? 'upgrade-insecure-requests' : '',
+    sitioEsHttps ? 'upgrade-insecure-requests' : '',
   ]
     .filter(Boolean)
     .join('; ');
 }
 
 const esProduccion = process.env.NODE_ENV === 'production';
+
+// `NODE_ENV=production` no implica que haya HTTPS: en Easypanel un proxy pone
+// TLS delante, pero en un despliegue casero (mini PC en la red local, sin
+// proxy) el panel se sirve tal cual por HTTP. Forzar HTTPS ahí (con
+// `upgrade-insecure-requests` o HSTS) rompe la carga de CSS/JS, porque el
+// navegador intenta pedirlos por https:// a un puerto que solo habla HTTP.
+const sitioEsHttps = (process.env.NEXT_PUBLIC_SITE_URL || '').startsWith('https://');
 
 const nextConfig = {
   reactStrictMode: true,
@@ -81,8 +88,8 @@ const nextConfig = {
             value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
           },
           { key: 'Content-Security-Policy', value: contentSecurityPolicy(esProduccion) },
-          // Solo en producción: obliga a HTTPS durante un año.
-          ...(esProduccion
+          // Solo si el sitio se sirve por HTTPS: obliga a seguir usándolo durante un año.
+          ...(sitioEsHttps
             ? [
                 {
                   key: 'Strict-Transport-Security',
