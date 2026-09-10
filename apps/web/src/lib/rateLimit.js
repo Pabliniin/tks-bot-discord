@@ -94,15 +94,23 @@ export function rateLimitHeaders(resultado, tipo = 'leer') {
 /**
  * IP de quien llama, para limitar las rutas públicas (sin sesión que usar).
  *
- * Detrás del proxy inverso de Easypanel la IP real llega en `x-forwarded-for`,
- * donde el primer valor es el cliente y el resto son los proxies.
+ * Se toma el ÚLTIMO valor de `x-forwarded-for`, no el primero. El primero lo
+ * puede escribir el propio cliente en su petición (cualquiera puede mandar
+ * `X-Forwarded-For: 1.2.3.4` falso) -- el proxy que sí está bajo control
+ * (Caddy en el mini PC, o el de Easypanel) AÑADE la IP real al final de la
+ * cadena, no la reemplaza. Fiarse del primer valor deja el límite de la
+ * página de apelaciones (pública, sin sesión) trivial de saltarse mandando
+ * una IP distinta en cada intento.
  *
  * @param {Request} request
  * @returns {string}
  */
 export function clientIp(request) {
   const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0].trim();
+  if (forwarded) {
+    const partes = forwarded.split(',').map((p) => p.trim());
+    return partes[partes.length - 1] || 'desconocida';
+  }
 
   return request.headers.get('x-real-ip') || 'desconocida';
 }
