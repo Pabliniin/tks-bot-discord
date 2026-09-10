@@ -12,6 +12,13 @@ import { cookies } from 'next/headers';
 const COOKIE_NAME = 'tkbot_session';
 const MAX_AGE = 7 * 24 * 60 * 60; // 7 días
 
+// NODE_ENV=production no implica HTTPS: en Easypanel hay un proxy con TLS
+// delante, pero en un despliegue casero (mini PC en la red local, sin
+// proxy) el panel se sirve tal cual por HTTP. Una cookie `Secure` en una
+// conexión HTTP el navegador la descarta sin más -- el login "funcionaría"
+// en el servidor pero la sesión nunca se guardaría en el navegador.
+const ES_HTTPS = (process.env.NEXT_PUBLIC_SITE_URL || '').startsWith('https://');
+
 /** Clave de firma derivada de SESSION_SECRET. */
 function getKey() {
   const secret = process.env.SESSION_SECRET;
@@ -58,7 +65,7 @@ export async function getSession() {
 export async function setSessionCookie(response, token) {
   response.cookies.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: ES_HTTPS,
     sameSite: 'lax',
     path: '/',
     maxAge: MAX_AGE,
@@ -70,7 +77,7 @@ export async function setSessionCookie(response, token) {
 export function clearSessionCookie(response) {
   response.cookies.set(COOKIE_NAME, '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: ES_HTTPS,
     sameSite: 'lax',
     path: '/',
     maxAge: 0,

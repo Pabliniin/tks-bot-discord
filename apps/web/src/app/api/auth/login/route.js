@@ -32,7 +32,7 @@ export async function GET(request) {
 
   response.cookies.set('tkbot_oauth_state', state, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: (process.env.NEXT_PUBLIC_SITE_URL || '').startsWith('https://'),
     sameSite: 'lax',
     path: '/',
     maxAge: 600,
@@ -40,7 +40,7 @@ export async function GET(request) {
 
   response.cookies.set('tkbot_oauth_redirect', redirectTo.startsWith('/') ? redirectTo : '/dashboard', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: (process.env.NEXT_PUBLIC_SITE_URL || '').startsWith('https://'),
     sameSite: 'lax',
     path: '/',
     maxAge: 600,
