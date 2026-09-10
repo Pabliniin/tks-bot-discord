@@ -1,0 +1,7 @@
+# Proxy del panel web: quita el ":3000" de la URL (ver docker-compose.yml).
+# `:80` sin nombre de dominio -- Caddy sirve HTTP normal y corriente, sin
+# intentar pedir un certificado HTTPS automático (eso hace falta un dominio
+# de verdad, pendiente de decidir).
+:80 {
+	reverse_proxy web:3000
+}

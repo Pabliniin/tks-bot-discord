@@ -131,7 +131,11 @@ services:
     depends_on:
       - bot
     ports:
-      - '${WEB_PORT:-3000}:3000'
+      # Solo en localhost: nadie de la red local debe entrar por el puerto
+      # directo, todo pasa por `caddy` (ver más abajo) para que la URL no
+      # lleve número de puerto. Sigue disponible en el propio servidor para
+      # depurar (`curl localhost:3000`).
+      - '127.0.0.1:${WEB_PORT:-3000}:3000'
     environment:
       NODE_ENV: production
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
@@ -147,6 +151,22 @@ services:
       NEXT_PUBLIC_SUPPORT_INVITE: ${NEXT_PUBLIC_SUPPORT_INVITE:-}
       NEXT_PUBLIC_TWITTER_URL: ${NEXT_PUBLIC_TWITTER_URL:-}
       NEXT_PUBLIC_TOPGG_URL: ${NEXT_PUBLIC_TOPGG_URL:-}
+
+  # ── Proxy del panel ──────────────────────────────────────────
+  #
+  # Quita el ":3000" de la URL del panel: en vez de entrar por
+  # http://<ip>:3000 se entra por http://<ip> a secas (puerto 80, el que
+  # usa cualquier web normal). No añade HTTPS ni dominio propio -- eso
+  # sigue pendiente (Tailscale / DuckDNS, según lo que se decida).
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - web
 
 volumes:
   mongo-data:
