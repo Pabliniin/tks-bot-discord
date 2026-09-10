@@ -5,9 +5,19 @@ import { signSession, setSessionCookie } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
+// `request.nextUrl.origin` es la dirección con la que Next.js CREE que se le
+// está llamando -- detrás de un proxy (Caddy) suele salir mal (p.ej.
+// "http://localhost:3000", que nadie fuera del contenedor puede alcanzar, y
+// deja el login colgado justo al volver de Discord con "ERR_CONNECTION_
+// REFUSED" aunque la sesión ya se haya guardado bien). NEXT_PUBLIC_SITE_URL
+// es la dirección real y pública, así que manda ella.
+function origenPublico(request) {
+  return process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin;
+}
+
 /** Redirige a la portada con un mensaje de error legible. */
 function fail(request, reason) {
-  const url = new URL('/', request.nextUrl.origin);
+  const url = new URL('/', origenPublico(request));
   url.searchParams.set('error', reason);
   return NextResponse.redirect(url);
 }
@@ -47,7 +57,7 @@ export async function GET(request) {
     });
 
     const redirectTo = request.cookies.get('tkbot_oauth_redirect')?.value || '/dashboard';
-    const response = NextResponse.redirect(new URL(redirectTo, request.nextUrl.origin));
+    const response = NextResponse.redirect(new URL(redirectTo, origenPublico(request)));
 
     await setSessionCookie(response, token);
 
